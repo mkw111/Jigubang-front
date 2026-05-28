@@ -16,7 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/join/apt" element={<AptSearchPage />} />
-          <Route path="/join/header-check/:aptDongHoId" element={<HeaderCheckPage />} />
+          <Route path="/join/header-check/:hoSeq" element={<HeaderCheckPage />} />
           <Route path="/join/cert" element={<CertPage />} />
           <Route path="/join/password" element={<PasswordPage />} />
           <Route path="/login" element={<LoginPage />} />

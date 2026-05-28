@@ -8,7 +8,7 @@ const PasswordPage: React.FC = () => {
     const location = useLocation();
     
     // 이전 페이지에서 넘어온 정보
-    const { name, phone, certNumber } = location.state || {};
+    const { name, phone, certNumber, hoSeq } = location.state || {};
 
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -31,7 +31,7 @@ const PasswordPage: React.FC = () => {
                 phoneNumber: phone || "01000000000",
                 certNumber: certNumber || "123456",
                 password: password,
-                aptDongHoId: 1, // 테스트용 임시 값
+                hoSeq: hoSeq || 1, // 테스트용 임시 값
                 joinChannel: "APP", // 필수 필드 추가
                 termsIds: [1, 2, 3] // 약관 동의 임시 값
             });

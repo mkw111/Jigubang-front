@@ -4,13 +4,15 @@ import axios from "axios";
 import "./HeaderCheckPage.css";
 
 const HeaderCheckPage: React.FC = () => {
-    const { aptDongHoId } = useParams();
+
+
+    const { hoSeq } = useParams();
     const navigate = useNavigate();
     const [headerInfo, setHeaderInfo] = useState<any>(null);
 
     useEffect(() => {
-        axios.get(`/api/households/${aptDongHoId}/header`).then(res => setHeaderInfo(res.data));
-    }, [aptDongHoId]);
+        axios.get(`/api/households/${hoSeq}/header`).then(res => setHeaderInfo(res.data));
+    }, [hoSeq]);
 
     if (!headerInfo) return <div>로딩 중...</div>;
 
@@ -31,7 +33,7 @@ const HeaderCheckPage: React.FC = () => {
                     </div>
                 )}
             </div>
-            <button className="next-btn" onClick={() => navigate('/join/cert')}>다음</button>
+            <button className="next-btn" onClick={() => navigate('/join/cert', {state : {hoSeq}})}>다음</button>
         </div>
     );
 };

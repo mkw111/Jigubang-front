@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 import axios from "axios";
 import "./CertPage.css";
 
 const CertPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // 이전 페이지에서 넘어온 정보
+    const { hoSeq } = location.state || {};
     
     // 상태 관리
     const [name, setName] = useState("");
@@ -134,7 +138,7 @@ const CertPage: React.FC = () => {
 
             <button 
                 className={`next-btn ${isVerified ? 'active' : ''}`} 
-                onClick={() => isVerified && navigate('/join/password', { state: { name, phone, certNumber } })}
+                onClick={() => isVerified && navigate('/join/password', { state: { name, phone, certNumber, hoSeq } })}
                 disabled={!isVerified}
             >
                 다음
