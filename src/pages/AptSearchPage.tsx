@@ -15,18 +15,43 @@ const AptSearchPage: React.FC = () => {
 
     useEffect(() => {
         if (search.length >= 2) {
-            axios.get(`/api/apt/sites?aptName=${search}`).then(res => setSites(res.data));
+            axios.get(`/api/apt/sites?aptName=${search}`)
+                .then(res => {
+                    if (Array.isArray(res.data)) {
+                        setSites(res.data);
+                    } else {
+                        console.error("Invalid sites data:", res.data);
+                        setSites([]);
+                    }
+                })
+                .catch(err => console.error("Search failed:", err));
         }
     }, [search]);
 
     const handleSiteSelect = (site: any) => {
         setSelectedSite(site);
-        axios.get(`/api/apt/sites/${site.siteSeq}/dongs`).then(res => setDongs(res.data.dongs));
+        axios.get(`/api/apt/sites/${site.siteSeq}/dongs`)
+            .then(res => {
+                if (res.data && Array.isArray(res.data.dongs)) {
+                    setDongs(res.data.dongs);
+                } else {
+                    alert("동 정보를 불러오지 못했습니다.");
+                }
+            })
+            .catch(err => alert("서버 통신 오류"));
     };
 
     const handleDongSelect = (dong: string) => {
         setSelectedDong(dong);
-        axios.get(`/api/apt/sites/${selectedSite.siteSeq}/dongs/${dong}/hos`).then(res => setHos(res.data));
+        axios.get(`/api/apt/sites/${selectedSite.siteSeq}/dongs/${dong}/hos`)
+            .then(res => {
+                if (Array.isArray(res.data)) {
+                    setHos(res.data);
+                } else {
+                    alert("호 정보를 불러오지 못했습니다.");
+                }
+            })
+            .catch(err => alert("서버 통신 오류"));
     };
 
     const location = useLocation();
@@ -37,14 +62,24 @@ const AptSearchPage: React.FC = () => {
         if (!selectedHoSeq) return;
 
         if (mode === 'change') {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            try {
-                await axios.post(`/api/users/change-address?uuid=${user.uuid}&aptDongHoId=${selectedHoSeq}`);
-                alert('주소가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
-                localStorage.removeItem('user');
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                alert("로그인 정보가 없습니다.");
                 navigate('/login');
+                return;
+            }
+            const user = JSON.parse(userStr);
+            try {
+                const res = await axios.post(`/api/users/change-address?uuid=${user.uuid}&aptDongHoId=${selectedHoSeq}`);
+                if (res.status === 200 || res.data.success) {
+                    alert('주소가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
+                    localStorage.removeItem('user');
+                    navigate('/login');
+                } else {
+                    throw new Error("Change failed");
+                }
             } catch (e) {
-                alert('주소 변경 실패');
+                alert('주소 변경에 실패했습니다. 다시 시도해주세요.');
             }
         } else {
             navigate(`/join/header-check/${selectedHoSeq}`);

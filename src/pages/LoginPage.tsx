@@ -11,10 +11,19 @@ const LoginPage: React.FC = () => {
     const handleLogin = async () => {
         try {
             const res = await axios.post('/api/users/login', { phoneNumber, password });
-            localStorage.setItem('user', JSON.stringify(res.data));
-            navigate('/mypage');
-        } catch (e) {
-            alert('로그인 실패');
+            
+            // 응답 데이터에 유저 정보(최소한 name)가 있는지 확인
+            if (res.data && res.data.name) {
+                localStorage.setItem('user', JSON.stringify(res.data));
+                navigate('/mypage');
+            } else {
+                console.error("Invalid login response:", res.data);
+                alert('로그인 정보가 올바르지 않거나 데이터가 없습니다.');
+            }
+        } catch (e: any) {
+            console.error("Login failed:", e.response?.data || e.message);
+            const errorMsg = e.response?.data?.message || '로그인 서버와 통신할 수 없습니다.';
+            alert(`로그인 실패: ${errorMsg}`);
         }
     };
 
