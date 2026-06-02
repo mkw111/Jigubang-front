@@ -59,16 +59,21 @@ const CertPage: React.FC = () => {
             return;
         }
         try {
-            await axios.post("/api/auth/hp-cert/confirm", { 
+            const res = await axios.post("/api/auth/hp-cert/confirm", { 
                 phoneNumber: phone, 
                 certNumber: certNumber 
             });
-            setIsVerified(true);
-            setTimeLeft(0);
-            alert("인증되었습니다.");
-        } catch (error) {
+            // 응답이 성공이고, 데이터가 비어있지 않은지(HTML이 아닌지) 확인
+            if (res.status === 200 && typeof res.data === 'object') {
+                setIsVerified(true);
+                setTimeLeft(0);
+                alert("인증되었습니다.");
+            } else {
+                throw new Error("Invalid response");
+            }
+        } catch (error: any) {
             console.error("인증 확인 실패:", error);
-            alert("인증번호가 일치하지 않습니다.");
+            alert("인증번호가 일치하지 않거나 서버 응답이 올바르지 않습니다.");
         }
     };
 

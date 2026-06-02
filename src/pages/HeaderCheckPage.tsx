@@ -11,8 +11,22 @@ const HeaderCheckPage: React.FC = () => {
     const [headerInfo, setHeaderInfo] = useState<any>(null);
 
     useEffect(() => {
-        axios.get(`/api/households/${hoSeq}/header`).then(res => setHeaderInfo(res.data));
-    }, [hoSeq]);
+        axios.get(`/api/households/${hoSeq}/header`)
+            .then(res => {
+                if (res.data && typeof res.data.isExist !== 'undefined') {
+                    setHeaderInfo(res.data);
+                } else {
+                    console.error("Invalid header data:", res.data);
+                    alert("세대 정보를 불러오지 못했습니다.");
+                    navigate(-1);
+                }
+            })
+            .catch(err => {
+                console.error("Header fetch failed:", err);
+                alert("서버 통신 중 오류가 발생했습니다.");
+                navigate(-1);
+            });
+    }, [hoSeq, navigate]);
 
     if (!headerInfo) return <div>로딩 중...</div>;
 
