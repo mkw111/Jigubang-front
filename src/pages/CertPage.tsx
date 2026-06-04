@@ -63,8 +63,8 @@ const CertPage: React.FC = () => {
                 phoneNumber: phone, 
                 certNumber: certNumber 
             });
-            // 응답이 성공이고, 데이터가 비어있지 않은지(HTML이 아닌지) 확인
-            if (res.status === 200 && typeof res.data === 'object') {
+            // 인증 성공은 200 OK (백엔드가 본문 없는 ResponseEntity<Void> 반환)
+            if (res.status === 200) {
                 setIsVerified(true);
                 setTimeLeft(0);
                 alert("인증되었습니다.");
