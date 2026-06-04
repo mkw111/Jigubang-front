@@ -13,7 +13,7 @@ const HeaderCheckPage: React.FC = () => {
     useEffect(() => {
         axios.get(`/api/households/${hoSeq}/header`)
             .then(res => {
-                if (res.data && typeof res.data.isExist !== 'undefined') {
+                if (res.data && typeof res.data.exists !== 'undefined') {
                     setHeaderInfo(res.data);
                 } else {
                     console.error("Invalid header data:", res.data);
@@ -34,7 +34,7 @@ const HeaderCheckPage: React.FC = () => {
         <div className="page-container">
             <header className="header"><button className="back-btn" onClick={() => navigate(-1)}>&lt;</button><h2>세대주 확인</h2></header>
             <div className="content">
-                {headerInfo.isExist ? (
+                {headerInfo.exists ? (
                     <div className="info-box">
                         <p>해당 동호에 이미 등록된 세대가 있습니다.</p>
                         <p>세대주: {headerInfo.headerName}</p>
