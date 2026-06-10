@@ -1,211 +1,237 @@
 .home-container {
-    padding: 20px;
-    background-color: #F8F9FA;
+    padding: 0;
+    background-color: #F0F4F8;
     min-height: 100vh;
-    font-family: 'Pretendard', sans-serif;
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    color: #1A1C1E;
 }
 
 .home-header {
+    padding: 20px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    background: white;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
-.location-info {
-    display: flex;
-    flex-direction: column;
+.location-info .apt-name {
+    font-size: 13px;
+    color: #8E9196;
+    display: block;
+    margin-bottom: 2px;
 }
 
-.apt-name {
-    font-size: 14px;
-    color: #666;
-}
-
-.ho-info {
-    font-size: 20px;
+.location-info .ho-info {
+    font-size: 18px;
     font-weight: 700;
-    color: #333;
+    color: #1A1C1E;
 }
 
 .user-icon {
-    font-size: 24px;
-    cursor: pointer;
-    background: white;
-    width: 40px;
-    height: 40px;
+    background: #E8F1FF;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 16px;
+    font-size: 20px;
 }
 
-.dr-banner {
-    background: linear-gradient(90deg, #FF5252, #FF8A80);
-    color: white;
-    padding: 15px 20px;
-    border-radius: 15px;
+.dashboard-content {
+    padding: 20px;
+}
+
+/* DR Banner - High Visibility */
+.dr-banner.active {
+    background: linear-gradient(135deg, #FF4B4B 0%, #FF8080 100%);
+    padding: 16px 20px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
+    margin-bottom: 24px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
 }
 
 .dr-tag {
     background: white;
-    color: #FF5252;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 4px;
+    color: #FF4B4B;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 6px;
 }
 
-.dr-text {
-    flex: 1;
-    font-size: 14px;
-    margin: 0;
-}
-
+/* Card Common */
 .card {
     background: white;
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    margin-bottom: 15px;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(149, 157, 165, 0.1);
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.8);
 }
 
 .card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 20px;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 24px;
 }
 
+/* Energy Gauge - Prototype Look */
 .usage-card {
-    text-align: center;
+    position: relative;
+    overflow: hidden;
 }
 
 .gauge-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+    padding: 10px 0;
 }
 
 .gauge-circle {
-    width: 180px;
-    height: 180px;
-    border: 15px solid #E9ECEF;
-    border-top-color: #4CAF50;
+    width: 200px;
+    height: 200px;
     border-radius: 50%;
+    background: conic-gradient(#4CAF50 0%, #4CAF50 var(--per), #F0F4F8 var(--per), #F0F4F8 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
+    margin: 0 auto;
+    --per: 65%; /* This should be dynamic */
+}
+
+.gauge-circle::after {
+    content: "";
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
 }
 
 .usage-value {
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    z-index: 1;
+    text-align: center;
 }
 
 .usage-value .number {
-    font-size: 32px;
-    font-weight: 800;
-    color: #333;
+    font-size: 40px;
+    font-weight: 900;
+    color: #1A1C1E;
+    display: block;
+    line-height: 1;
 }
 
 .usage-value .unit {
     font-size: 14px;
-    color: #999;
+    color: #8E9196;
+    margin-top: 4px;
 }
 
 .compare-text {
-    font-size: 13px;
-    color: #666;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #4CAF50;
+    background: #E8F5E9;
+    padding: 8px 16px;
+    border-radius: 12px;
+    display: inline-block;
 }
 
+/* Grid layout */
 .info-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
 .small-card {
     margin-bottom: 0;
+    padding: 20px;
 }
 
 .card-label {
-    font-size: 12px;
-    color: #999;
-    margin-bottom: 8px;
+    font-size: 13px;
+    color: #8E9196;
+    margin-bottom: 12px;
 }
 
 .card-val {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 800;
 }
 
 .card-val.green {
-    color: #4CAF50;
+    color: #2E7D32;
 }
 
+/* Points Card - Gradient Style */
 .points-card {
+    background: linear-gradient(135deg, #1A1C1E 0%, #33393F 100%);
+    color: white;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #333;
-    color: white;
-    cursor: pointer;
-}
-
-.points-card .card-title {
-    color: #AAA;
-    margin-bottom: 5px;
+    border: none;
 }
 
 .points-value {
-    font-size: 24px;
-    font-weight: 700;
-    color: #FFD700;
+    font-size: 26px;
+    font-weight: 800;
+    color: #FFD233;
 }
 
 .shop-btn {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.15);
+    padding: 10px 18px;
+    border-radius: 14px;
+    font-weight: 600;
     border: none;
     color: white;
-    padding: 8px 12px;
-    border-radius: 10px;
-    font-size: 12px;
 }
 
+/* Bottom Tab Bar style Navigation */
 .quick-menu {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 10px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 10px 30px;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+    z-index: 100;
 }
 
 .menu-item {
-    background: white;
-    border-radius: 15px;
-    padding: 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    gap: 6px;
+    flex: 1;
 }
 
 .menu-icon {
-    font-size: 24px;
+    font-size: 22px;
 }
 
 .menu-item span {
-    font-size: 12px;
-    color: #666;
-    font-weight: 500;
+    font-size: 11px;
+    font-weight: 600;
+    color: #8E9196;
 }

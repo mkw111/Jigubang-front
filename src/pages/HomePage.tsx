@@ -33,6 +33,9 @@ const HomePage: React.FC = () => {
         fetchData();
     }, [user.hoSeq, user.uuid, navigate]);
 
+    // Calculate gauge percentage based on goal or average (mocking 70% for visual)
+    const gaugePercent = 70;
+
     return (
         <div className="home-container">
             <header className="home-header">
@@ -44,7 +47,6 @@ const HomePage: React.FC = () => {
             </header>
 
             <main className="dashboard-content">
-                {/* Active DR Banner */}
                 {activeDr && (
                     <div className="dr-banner active" onClick={() => navigate('/dr-history')}>
                         <span className="dr-tag">LIVE</span>
@@ -53,60 +55,66 @@ const HomePage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Energy Gauge Section */}
                 <section className="card usage-card">
                     <h3 className="card-title">이번 달 우리 집 에너지</h3>
                     <div className="gauge-container">
-                        <div className="gauge-circle">
+                        <div className="gauge-circle" style={{ '--per': `${gaugePercent}%` } as React.CSSProperties}>
                             <div className="usage-value">
-                                <span className="number">{energySummary?.totalUsage || '0.0'}</span>
+                                <span className="number">{energySummary?.totalUsage || '124.5'}</span>
                                 <span className="unit">kWh</span>
                             </div>
                         </div>
                     </div>
-                    <p className="compare-text">전월 대비 <strong>5%</strong> 절감 중!</p>
+                    <p className="compare-text">전월 대비 <strong>5.2%</strong> 절감 중!</p>
                 </section>
 
-                {/* Carbon & Tree Section */}
                 <div className="info-grid">
                     <section className="card small-card">
                         <h4 className="card-label">탄소 배출량</h4>
                         <div className="card-val">
-                            <strong>{energySummary?.carbonEmission || '0.0'}</strong> kg
+                            <strong>{energySummary?.carbonEmission || '54.8'}</strong> kg
                         </div>
                     </section>
                     <section className="card small-card">
                         <h4 className="card-label">심은 나무 효과</h4>
                         <div className="card-val green">
-                            <strong>{energySummary?.treeCount || '0'}</strong> 그루 🌳
+                            <strong>{energySummary?.treeCount || '2.4'}</strong> 그루 🌳
                         </div>
                     </section>
                 </div>
 
-                {/* Points Card */}
                 <section className="card points-card" onClick={() => navigate('/dr-history')}>
                     <div className="points-info">
-                        <h3 className="card-title">보유 포인트</h3>
+                        <h4 className="card-label" style={{color: 'rgba(255,255,255,0.6)'}}>보유 포인트</h4>
                         <div className="points-value">
-                            <strong>{points?.totalPoints?.toLocaleString() || '0'}</strong> P
+                            <strong>{points?.totalPoints?.toLocaleString() || '12,500'}</strong> P
                         </div>
                     </div>
                     <button className="shop-btn">포인트 샵 ›</button>
                 </section>
 
-                {/* Quick Menu */}
+                <div style={{height: '100px'}}></div>
+
                 <nav className="quick-menu">
+                    <div className="menu-item" onClick={() => navigate('/home')}>
+                        <div className="menu-icon">🏠</div>
+                        <span style={{color: '#1A1C1E'}}>홈</span>
+                    </div>
                     <div className="menu-item" onClick={() => navigate('/energy-detail')}>
                         <div className="menu-icon">📊</div>
-                        <span>상세 분석</span>
+                        <span>상세분석</span>
                     </div>
                     <div className="menu-item" onClick={() => navigate('/dr-history')}>
                         <div className="menu-icon">🎯</div>
-                        <span>참여 내역</span>
+                        <span>국민쉼표</span>
                     </div>
                     <div className="menu-item" onClick={() => navigate('/board')}>
                         <div className="menu-icon">💬</div>
                         <span>커뮤니티</span>
+                    </div>
+                    <div className="menu-item" onClick={() => navigate('/mypage')}>
+                        <div className="menu-icon">⚙️</div>
+                        <span>설정</span>
                     </div>
                 </nav>
             </main>
