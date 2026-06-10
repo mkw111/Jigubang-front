@@ -12,10 +12,9 @@ const LoginPage: React.FC = () => {
         try {
             const res = await axios.post('/api/users/login', { phoneNumber, password });
             
-            // 응답 데이터에 유저 정보(최소한 name)가 있는지 확인
             if (res.data && res.data.name) {
                 localStorage.setItem('user', JSON.stringify(res.data));
-                navigate('/mypage');
+                navigate('/home');
             } else {
                 console.error("Invalid login response:", res.data);
                 alert('로그인 정보가 올바르지 않거나 데이터가 없습니다.');
@@ -48,6 +47,11 @@ const LoginPage: React.FC = () => {
                         onChange={e => setPassword(e.target.value)}
                         style={{width: '100%', height: '50px', borderRadius: '12px', border: '1px solid #ddd', padding: '0 15px'}}
                     />
+                </div>
+                <div style={{textAlign: 'right', marginBottom: '20px'}}>
+                    <span onClick={() => navigate('/reset-password')} style={{fontSize: '14px', color: '#666', cursor: 'pointer', textDecoration: 'underline'}}>
+                        비밀번호를 잊으셨나요?
+                    </span>
                 </div>
                 <button className="btn login-btn" onClick={handleLogin}>로그인</button>
                 <button className="btn join-btn" onClick={() => navigate(-1)} style={{backgroundColor: '#ccc'}}>취소</button>

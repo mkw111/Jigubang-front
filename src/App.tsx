@@ -7,6 +7,8 @@ import CertPage from "./pages/CertPage";
 import PasswordPage from "./pages/PasswordPage";
 import LoginPage from "./pages/LoginPage";
 import MyPage from "./pages/MyPage";
+import HomePage from "./pages/HomePage";
+import PasswordResetPage from "./pages/PasswordResetPage";
 import "./App.css";
 
 function App() {
@@ -21,6 +23,8 @@ function App() {
           <Route path="/join/password" element={<PasswordPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/mypage" element={<MyPage />} />
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/reset-password" element={<PasswordResetPage />} />
         </Routes>
       </div>
     </Router>
