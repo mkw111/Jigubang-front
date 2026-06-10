@@ -9,6 +9,9 @@ import LoginPage from "./pages/LoginPage";
 import MyPage from "./pages/MyPage";
 import HomePage from "./pages/HomePage";
 import PasswordResetPage from "./pages/PasswordResetPage";
+import EnergyDetailPage from "./pages/EnergyDetailPage";
+import DrHistoryPage from "./pages/DrHistoryPage";
+import BoardPage from "./pages/BoardPage";
 import "./App.css";
 
 function App() {
@@ -25,6 +28,9 @@ function App() {
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/reset-password" element={<PasswordResetPage />} />
+          <Route path="/energy-detail" element={<EnergyDetailPage />} />
+          <Route path="/dr-history" element={<DrHistoryPage />} />
+          <Route path="/board" element={<BoardPage />} />
         </Routes>
       </div>
     </Router>
