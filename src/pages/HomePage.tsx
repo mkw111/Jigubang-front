@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BottomNav from '../components/BottomNav';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
@@ -33,7 +34,6 @@ const HomePage: React.FC = () => {
         fetchData();
     }, [user.hoSeq, user.uuid, navigate]);
 
-    // Calculate gauge percentage based on goal or average (mocking 70% for visual)
     const gaugePercent = 70;
 
     return (
@@ -50,7 +50,7 @@ const HomePage: React.FC = () => {
                 {activeDr && (
                     <div className="dr-banner active" onClick={() => navigate('/dr-history')}>
                         <span className="dr-tag">LIVE</span>
-                        <p className="dr-text">지금은 <strong>국민쉼표</strong> 시간! 에너지 절감에 참여하세요.</p>
+                        <p className="dr-text">지금은 <strong>수요반응</strong> 참여 시간!</p>
                         <span className="dr-arrow">›</span>
                     </div>
                 )}
@@ -94,30 +94,9 @@ const HomePage: React.FC = () => {
                 </section>
 
                 <div style={{height: '100px'}}></div>
-
-                <nav className="quick-menu">
-                    <div className="menu-item" onClick={() => navigate('/home')}>
-                        <div className="menu-icon">🏠</div>
-                        <span style={{color: '#1A1C1E'}}>홈</span>
-                    </div>
-                    <div className="menu-item" onClick={() => navigate('/energy-detail')}>
-                        <div className="menu-icon">📊</div>
-                        <span>상세분석</span>
-                    </div>
-                    <div className="menu-item" onClick={() => navigate('/dr-history')}>
-                        <div className="menu-icon">🎯</div>
-                        <span>국민쉼표</span>
-                    </div>
-                    <div className="menu-item" onClick={() => navigate('/board')}>
-                        <div className="menu-icon">💬</div>
-                        <span>커뮤니티</span>
-                    </div>
-                    <div className="menu-item" onClick={() => navigate('/mypage')}>
-                        <div className="menu-icon">⚙️</div>
-                        <span>설정</span>
-                    </div>
-                </nav>
             </main>
+            
+            <BottomNav />
         </div>
     );
 };

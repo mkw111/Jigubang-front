@@ -12,6 +12,7 @@ import PasswordResetPage from "./pages/PasswordResetPage";
 import EnergyDetailPage from "./pages/EnergyDetailPage";
 import DrHistoryPage from "./pages/DrHistoryPage";
 import BoardPage from "./pages/BoardPage";
+import RankingPage from "./pages/RankingPage";
 import "./App.css";
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
           <Route path="/energy-detail" element={<EnergyDetailPage />} />
           <Route path="/dr-history" element={<DrHistoryPage />} />
           <Route path="/board" element={<BoardPage />} />
+          <Route path="/ranking" element={<RankingPage />} />
         </Routes>
       </div>
     </Router>
