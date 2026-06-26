@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import '../pages/HomePage.css';
 
 const BottomNav: React.FC = () => {
     const navigate = useNavigate();
@@ -15,20 +14,38 @@ const BottomNav: React.FC = () => {
     ];
 
     return (
-        <nav className="quick-menu">
-            {menuItems.map((item) => (
-                <div 
-                    key={item.path} 
-                    className="menu-item" 
-                    onClick={() => navigate(item.path)}
-                    style={{ opacity: location.pathname === item.path ? 1 : 0.5 }}
-                >
-                    <div className="menu-icon">{item.icon}</div>
-                    <span style={{ color: location.pathname === item.path ? '#1A1C1E' : '#8E9196' }}>
-                        {item.name}
-                    </span>
-                </div>
-            ))}
+        <nav className="bottom-nav">
+            {menuItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                    <div 
+                        key={item.path} 
+                        className="nav-item" 
+                        onClick={() => navigate(item.path)}
+                    >
+                        <div 
+                            className="nav-icon" 
+                            style={{ 
+                                color: isActive ? 'var(--color-primary-dark)' : 'var(--color-text-light)',
+                                filter: isActive ? 'drop-shadow(0 2px 8px rgba(0, 168, 255, 0.4))' : 'none',
+                                transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {item.icon}
+                        </div>
+                        <span 
+                            className="nav-label" 
+                            style={{ 
+                                color: isActive ? 'var(--color-primary-dark)' : 'var(--color-text-muted)',
+                                fontWeight: isActive ? '700' : '500'
+                            }}
+                        >
+                            {item.name}
+                        </span>
+                    </div>
+                );
+            })}
         </nav>
     );
 };

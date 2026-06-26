@@ -1,60 +1,130 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import './HomePage.css';
+import './RankingPage.css';
+
+interface RankItem {
+    rank: number;
+    name: string;
+    score: number;
+    savings: string;
+    isMe?: boolean;
+}
 
 const RankingPage: React.FC = () => {
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const [scope, setScope] = useState<'myApt' | 'national'>('myApt');
 
-    const mockRanking = [
-        { rank: 1, name: '101동 1204호', score: '98.5' },
-        { rank: 2, name: '103동 502호', score: '95.2' },
-        { rank: 3, name: '우리집 (102동 401호)', score: '92.0', isMe: true },
-        { rank: 4, name: '105동 101호', score: '88.7' },
-        { rank: 5, name: '102동 1503호', score: '85.4' },
+    // Mock ranking data matching designs
+    const myAptRankings: RankItem[] = [
+        { rank: 1, name: '702동 1402호', score: 99.4, savings: '28.4%' },
+        { rank: 2, name: '704동 301호', score: 97.8, savings: '26.1%' },
+        { rank: 3, name: '701동 504호', score: 95.5, savings: '24.8%' },
+        { rank: 4, name: '703동 1205호', score: 92.1, savings: '22.3%' },
+        { rank: 5, name: '701동 1001호 (나)', score: 90.2, savings: '20.5%', isMe: true },
+        { rank: 6, name: '705동 902호', score: 87.6, savings: '18.9%' },
+        { rank: 7, name: '702동 1101호', score: 85.3, savings: '17.2%' }
     ];
 
+    const nationalRankings: RankItem[] = [
+        { rank: 1, name: '목동 신시가지 1단지', score: 99.8, savings: '32.1%' },
+        { rank: 2, name: '반포 자이 아파트', score: 98.9, savings: '30.4%' },
+        { rank: 3, name: '분당 시범 현대아파트', score: 98.1, savings: '29.7%' },
+        { rank: 4, name: '숲속마을 벨라시온 아파트 (나)', score: 94.2, savings: '23.8%', isMe: true },
+        { rank: 5, name: '해운대 엘시티', score: 93.5, savings: '22.9%' },
+        { rank: 6, name: '송도 더샵 퍼스트월드', score: 91.8, savings: '21.5%' },
+        { rank: 7, name: '대구 두산위브더제니스', score: 89.9, savings: '20.1%' }
+    ];
+
+    const currentRankings = scope === 'myApt' ? myAptRankings : nationalRankings;
+
+    const getBadge = (rank: number) => {
+        if (rank === 1) return <span className="rank-badge gold">🥇</span>;
+        if (rank === 2) return <span className="rank-badge silver">🥈</span>;
+        if (rank === 3) return <span className="rank-badge bronze">🥉</span>;
+        return <span className="rank-badge-number number-font">{rank}</span>;
+    };
+
     return (
-        <div className="home-container">
-            <header className="home-header">
-                <h2 className="ho-info">에너지 절약 랭킹</h2>
+        <div className="page-container ranking-wrapper">
+            {/* Header */}
+            <header className="app-header">
+                <button className="back-btn" onClick={() => navigate(-1)}>
+                    <span>‹</span>
+                </button>
+                <h2>에너지 랭킹</h2>
+                <div className="header-placeholder"></div>
             </header>
 
-            <main className="dashboard-content">
-                <section className="card" style={{ background: '#E8F5E9', border: 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <div style={{ fontSize: '40px' }}>🥇</div>
-                        <div>
-                            <h3 style={{ margin: 0, fontSize: '18px' }}>단지 내 상위 15%</h3>
-                            <p style={{ margin: '5px 0 0', color: '#666', fontSize: '14px' }}>훌륭해요! 이번 달에도 잘하고 계시네요.</p>
+            {/* Content */}
+            <main className="app-content ranking-content">
+                {/* Intro summary card */}
+                <div className="ranking-welcome-card">
+                    <div className="ranking-top-row">
+                        <span className="trophy-icon">🏆</span>
+                        <div className="text-col">
+                            <div className="main-greeting">전국 절전킹은 누구?</div>
+                            <div className="sub-desc">우리집은 몇 위 인지 알아볼까요?</div>
                         </div>
                     </div>
-                </section>
+                    <div className="my-rank-status">
+                        {scope === 'myApt' ? (
+                            <>우리집은 현재 단지 내 <strong>상위 15% (5위)</strong> 입니다.</>
+                        ) : (
+                            <>우리 단지는 현재 전국 <strong>상위 25% (4위)</strong> 입니다.</>
+                        )}
+                    </div>
+                </div>
 
-                <h3 className="card-title" style={{ marginTop: '30px' }}>이웃 랭킹 (이번 달)</h3>
-                
-                {mockRanking.map((item) => (
-                    <div key={item.rank} className="card" style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        padding: '16px 24px',
-                        backgroundColor: item.isMe ? '#E3F2FD' : 'white',
-                        border: item.isMe ? '1px solid #2196F3' : 'none'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <strong style={{ fontSize: '18px', color: item.rank <= 3 ? '#FFD700' : '#CCC', minWidth: '25px' }}>
-                                {item.rank}
-                            </strong>
-                            <span style={{ fontWeight: item.isMe ? 700 : 400 }}>{item.name}</span>
+                {/* Scope Switch Tabs */}
+                <div className="ranking-tabs">
+                    <button 
+                        className={`ranking-tab-btn ${scope === 'myApt' ? 'active' : ''}`}
+                        onClick={() => setScope('myApt')}
+                    >
+                        우리 단지 랭킹
+                    </button>
+                    <button 
+                        className={`ranking-tab-btn ${scope === 'national' ? 'active' : ''}`}
+                        onClick={() => setScope('national')}
+                    >
+                        전국 단지 랭킹
+                    </button>
+                </div>
+
+                {/* Ranking table header */}
+                <div className="rank-table-header">
+                    <span className="header-col rank">순위</span>
+                    <span className="header-col target">{scope === 'myApt' ? '세대' : '아파트 단지'}</span>
+                    <span className="header-col pct">절감률</span>
+                    <span className="header-col score">종합점수</span>
+                </div>
+
+                {/* Ranking List */}
+                <div className="ranking-list-container">
+                    {currentRankings.map((item) => (
+                        <div 
+                            key={item.rank} 
+                            className={`card ranking-list-item ${item.isMe ? 'highlight-me' : ''}`}
+                        >
+                            <div className="rank-col">
+                                {getBadge(item.rank)}
+                            </div>
+                            <div className="name-col">
+                                <span className={`target-name ${item.isMe ? 'bold' : ''}`}>{item.name}</span>
+                            </div>
+                            <div className="savings-col number-font">
+                                {item.savings}
+                            </div>
+                            <div className="score-col number-font">
+                                {item.score}점
+                            </div>
                         </div>
-                        <strong style={{ color: '#1A1C1E' }}>{item.score}점</strong>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </main>
 
-            <div style={{ height: '100px' }}></div>
             <BottomNav />
         </div>
     );

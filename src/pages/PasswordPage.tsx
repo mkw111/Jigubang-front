@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import "./CertPage.css"; // 재사용
+import "./CertPage.css";
 
 const PasswordPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     
-    // 이전 페이지에서 넘어온 정보
+    // Previous steps data
     const { name, phone, certNumber, hoSeq } = location.state || {};
 
     const [password, setPassword] = useState("");
@@ -25,23 +25,23 @@ const PasswordPage: React.FC = () => {
         }
 
         try {
-            // 가입 API 호출 (정확한 엔드포인트와 필드 반영)
             await axios.post("/api/users/join", {
-                name: name || "테스트유저",
-                phoneNumber: phone || "01000000000",
-                certNumber: certNumber || "123456",
+                name: name,
+                phoneNumber: phone,
+                certNumber: certNumber,
                 password: password,
-                hoSeq: hoSeq || 1, // 테스트용 임시 값
-                joinChannel: "APP", // 필수 필드 추가
-                termsIds: [1, 2, 3] // 약관 동의 임시 값
+                hoSeq: hoSeq,
+                joinChannel: "APP",
+                termsIds: [1, 2, 3]
             });
             
-            alert("가입이 완료되었습니다!");
+            alert("가입이 성공적으로 완료되었습니다. 로그인해주세요!");
             navigate('/login');
             
         } catch (error: any) {
-            console.error("가입 실패 상세:", error.response?.data || error.message);
-            alert("가입 처리 중 오류가 발생했습니다. (사유: " + (error.response?.data?.message || "서버 응답 오류") + ")");
+            console.error("Join request failed:", error.response?.data || error.message);
+            const msg = error.response?.data?.message || "가입 처리 중 오류가 발생했습니다. 다시 시도해 주세요.";
+            alert(msg);
         }
     };
 
@@ -49,56 +49,66 @@ const PasswordPage: React.FC = () => {
 
     return (
         <div className="page-container">
-            <header className="header">
-                <button className="back-btn" onClick={() => navigate(-1)}>&lt;</button>
-                <h2>회원가입</h2>
+            <header className="app-header">
+                <button className="back-btn" onClick={() => navigate(-1)}>
+                    <span>‹</span>
+                </button>
+                <h2>비밀번호 설정</h2>
+                <div className="header-placeholder"></div>
             </header>
             
-            <div className="content">
-                <div className="input-section">
-                    <label className="input-label">비밀번호</label>
-                    <div className="input-wrapper">
+            <div className="app-content">
+                <div className="card">
+                    <h3 className="card-title">비밀번호 생성</h3>
+                    
+                    <div className="form-group">
+                        <label className="form-label">새 비밀번호</label>
                         <input 
                             type="password" 
-                            placeholder="비밀번호" 
+                            placeholder="문자, 숫자 조합 6자리 이상" 
                             value={password} 
                             onChange={e => setPassword(e.target.value)} 
+                            className="form-input"
                         />
                     </div>
-                </div>
 
-                <div className="input-section">
-                    <label className="input-label">비밀번호 확인</label>
-                    <div className="input-wrapper">
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label">비밀번호 확인</label>
                         <input 
                             type="password" 
-                            placeholder="비밀번호 확인" 
+                            placeholder="동일한 비밀번호를 다시 입력하세요" 
                             value={passwordConfirm} 
                             onChange={e => setPasswordConfirm(e.target.value)} 
+                            className="form-input"
                         />
                     </div>
                 </div>
 
-                <div className="input-section" style={{ marginTop: '40px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px' }}>
+                <div className="card" style={{ padding: '20px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <input 
                             type="checkbox" 
                             checked={termsAgreed} 
                             onChange={e => setTermsAgreed(e.target.checked)}
-                            style={{ width: '20px', height: '20px' }}
+                            style={{ width: '22px', height: '22px', cursor: 'pointer', accentColor: 'var(--color-primary-dark)' }}
                         />
-                        네, 모든 약관에 동의합니다.
+                        <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-dark)' }}>
+                            지구방 모든 약관 및 수집 정책에 동의합니다.
+                        </span>
                     </label>
                 </div>
             </div>
 
-            <button 
-                className={`next-btn ${isFormValid ? 'active' : ''}`} 
-                onClick={handleJoin}
-                disabled={!isFormValid}
-            >
-                동의하고 가입하기
-            </button>
+            <div style={{ padding: '0 20px 20px 20px' }}>
+                <button 
+                    className="btn login-btn" 
+                    onClick={handleJoin}
+                    disabled={!isFormValid}
+                    style={{ opacity: isFormValid ? 1 : 0.6 }}
+                >
+                    동의하고 가입하기
+                </button>
+            </div>
         </div>
     );
 };

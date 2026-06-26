@@ -1,0 +1,76 @@
+.agree-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Tabs or pills */
+.tab-pill {
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-card);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-pill.active {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #FFFFFF;
+}
+
+/* Checklist items styling */
+.registration-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.checklist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 52px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.checklist-item.success {
+    background-color: var(--color-bg-light-blue);
+    border: 1px solid rgba(0, 168, 255, 0.15);
+    color: var(--color-primary-dark);
+}
+
+.checklist-item.success .check-icon {
+    color: var(--color-primary);
+    font-size: 16px;
+}
+
+.checklist-item.alert {
+    background-color: rgba(255, 59, 48, 0.08);
+    border: 1px solid rgba(255, 59, 48, 0.15);
+    color: #FF3B30;
+}
+
+.checklist-item.alert .close-icon {
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.checklist-item.info {
+    background-color: rgba(76, 175, 80, 0.08);
+    border: 1px solid rgba(76, 175, 80, 0.15);
+    color: var(--color-success);
+}
+
+.checklist-item.info .check-icon {
+    color: var(--color-success);
+    font-size: 16px;
+}

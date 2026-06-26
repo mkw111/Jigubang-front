@@ -1,0 +1,212 @@
+.ranking-wrapper {
+    background-color: var(--color-bg-main);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.ranking-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    overflow-y: auto;
+    padding-bottom: 110px; /* Space for BottomNav */
+}
+
+/* Welcome Card */
+.ranking-welcome-card {
+    background: linear-gradient(135deg, #FFC107 0%, #FF8F00 100%);
+    border-radius: 24px;
+    padding: 22px;
+    color: white;
+    box-shadow: 0 8px 24px rgba(255, 143, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.ranking-top-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.trophy-icon {
+    font-size: 32px;
+    background: rgba(255, 255, 255, 0.2);
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    animation: wobble 2s infinite ease-in-out;
+}
+
+@keyframes wobble {
+    0%, 100% { transform: rotate(0); }
+    15% { transform: rotate(-5deg) scale(1.05); }
+    30% { transform: rotate(5deg) scale(1.05); }
+    45% { transform: rotate(-3deg); }
+    60% { transform: rotate(3deg); }
+}
+
+.text-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.main-greeting {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.sub-desc {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.my-rank-status {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.my-rank-status strong {
+    font-size: 14px;
+    color: #FFF3C4;
+}
+
+/* Tabs */
+.ranking-tabs {
+    display: flex;
+    background: #EAEFF2;
+    padding: 4px;
+    border-radius: 14px;
+    gap: 4px;
+}
+
+.ranking-tab-btn {
+    flex: 1;
+    border: none;
+    background: none;
+    padding: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ranking-tab-btn.active {
+    background: white;
+    color: var(--color-text-dark);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Table Header */
+.rank-table-header {
+    display: flex;
+    padding: 4px 20px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+}
+
+.header-col.rank {
+    width: 44px;
+    text-align: center;
+}
+
+.header-col.target {
+    flex: 1;
+    padding-left: 10px;
+}
+
+.header-col.pct {
+    width: 60px;
+    text-align: right;
+}
+
+.header-col.score {
+    width: 70px;
+    text-align: right;
+}
+
+/* Ranking Items List */
+.ranking-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ranking-list-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    margin-bottom: 0;
+}
+
+.ranking-list-item.highlight-me {
+    background-color: var(--color-bg-light-blue);
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 4px 12px rgba(0, 168, 255, 0.1);
+}
+
+.rank-col {
+    width: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.rank-badge {
+    font-size: 20px;
+}
+
+.rank-badge-number {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-light);
+}
+
+.name-col {
+    flex: 1;
+    padding-left: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.target-name {
+    font-size: 13px;
+    color: var(--color-text-dark);
+    font-weight: 500;
+}
+
+.target-name.bold {
+    font-weight: 800;
+    color: var(--color-primary-dark);
+}
+
+.savings-col {
+    width: 60px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-success);
+    text-align: right;
+}
+
+.score-col {
+    width: 70px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-dark);
+    text-align: right;
+}
