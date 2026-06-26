@@ -37,8 +37,8 @@ const LoginPage: React.FC = () => {
                     console.warn("Apt details fetch failed, utilizing defaults", err);
                 }
 
-                // If user's household status type is WAITER, then the card stats lock mask should show (residency unauthenticated)
-                const isApproved = res.data.householdsType !== 'WAITER';
+                // Use backend-supplied approved status directly
+                const isApproved = res.data.approved;
 
                 localStorage.setItem('user', JSON.stringify({
                     uuid: res.data.uuid,

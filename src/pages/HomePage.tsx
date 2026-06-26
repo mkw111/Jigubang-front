@@ -27,34 +27,48 @@ const HomePage: React.FC = () => {
 
     // Fetch dashboard data
     useEffect(() => {
-        if (!user.hoSeq) return;
+        const hoSeq = user.hoSeq;
+        if (!hoSeq) return;
 
         const fetchData = async () => {
             try {
                 // Fetch energy summary
-                const summaryRes = await fetch(`/api/energy/summary/${user.hoSeq}`);
+                const summaryRes = await fetch(`/api/energy/summary/${hoSeq}`);
                 if (summaryRes.ok) {
                     const data = await summaryRes.json();
                     setEnergySummary(data);
                 }
 
                 // Fetch points
-                const pointsRes = await fetch(`/api/households/${user.hoSeq}/points`);
+                const pointsRes = await fetch(`/api/households/${hoSeq}/points`);
                 if (pointsRes.ok) {
                     const data = await pointsRes.json();
                     setPoints(data);
                 }
 
-
-
                 // Fetch household members to count them dynamically
-                const membersRes = await fetch(`/api/households/move-in/list?hoSeq=${user.hoSeq}`);
+                const membersRes = await fetch(`/api/households/move-in/list?hoSeq=${hoSeq}`);
                 if (membersRes.ok) {
                     const data = await membersRes.json();
                     // Include existing members and pending approved ones
                     if (Array.isArray(data)) {
                         const approved = data.filter((m: any) => m.approvedYn === 'Y').length;
                         setMemberCount(approved > 0 ? approved : 4);
+                    }
+                }
+
+                // Fetch household approval status dynamically from backend
+                const approvedRes = await fetch(`/api/households/${hoSeq}/approved`);
+                if (approvedRes.ok) {
+                    const approved = await approvedRes.json();
+                    const userStr = localStorage.getItem('user');
+                    if (userStr) {
+                        const currentUser = JSON.parse(userStr);
+                        if (currentUser && currentUser.isAuthenticated !== approved) {
+                            const updatedUser = { ...currentUser, isAuthenticated: approved };
+                            setUser(updatedUser);
+                            localStorage.setItem('user', JSON.stringify(updatedUser));
+                        }
                     }
                 }
             } catch (e) {
