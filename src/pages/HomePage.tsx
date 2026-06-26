@@ -12,6 +12,7 @@ const HomePage: React.FC = () => {
     // API states
     const [energySummary, setEnergySummary] = useState<any>({ totalUsage: 212, carbonEmission: 54.8, treeCount: 2 });
     const [points, setPoints] = useState<any>({ totalPoints: 15600, kpxPoints: 10000, gyeongnamPoints: 5600 });
+    const [activeIssue, setActiveIssue] = useState<any>(null);
 
     const [memberCount, setMemberCount] = useState<number>(4);
     
@@ -57,17 +58,33 @@ const HomePage: React.FC = () => {
                     }
                 }
 
-                // Fetch household approval status dynamically from backend
-                const approvedRes = await fetch(`/api/households/${hoSeq}/approved`);
-                if (approvedRes.ok) {
-                    const approved = await approvedRes.json();
-                    const userStr = localStorage.getItem('user');
-                    if (userStr) {
-                        const currentUser = JSON.parse(userStr);
-                        if (currentUser && currentUser.isAuthenticated !== approved) {
-                            const updatedUser = { ...currentUser, isAuthenticated: approved };
-                            setUser(updatedUser);
-                            localStorage.setItem('user', JSON.stringify(updatedUser));
+                // Fetch active DR issue
+                const activeRes = await fetch(`/api/dr/active-issue`);
+                if (activeRes.ok && activeRes.status !== 204) {
+                    const data = await activeRes.json();
+                    setActiveIssue(data);
+                } else {
+                    setActiveIssue(null);
+                }
+
+                // Fetch household and user approval status dynamically from backend
+                if (user.uuid) {
+                    const statusRes = await fetch(`/api/users/${user.uuid}/status`);
+                    if (statusRes.ok) {
+                        const statusData = await statusRes.json();
+                        const approved = statusData.approved;
+                        const userStr = localStorage.getItem('user');
+                        if (userStr) {
+                            const currentUser = JSON.parse(userStr);
+                            if (currentUser && (currentUser.isAuthenticated !== approved || currentUser.householdsType !== statusData.householdsType)) {
+                                const updatedUser = { 
+                                    ...currentUser, 
+                                    isAuthenticated: approved,
+                                    householdsType: statusData.householdsType
+                                };
+                                setUser(updatedUser);
+                                localStorage.setItem('user', JSON.stringify(updatedUser));
+                            }
                         }
                     }
                 }
@@ -85,23 +102,58 @@ const HomePage: React.FC = () => {
         navigate('/login');
     };
 
-    // Toggle simulation auth state
-    const toggleAuthState = () => {
-        const updatedUser = { ...user, isAuthenticated: !user.isAuthenticated };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-    };
+
 
     const isAuthenticated = user.isAuthenticated !== false; // defaults to true
 
-    // Values based on billing/monthly toggles matching the prototype video
-    const currentUsage = energyMode === 'billing' ? 212 : 149;
-    const currentCost = energyMode === 'billing' ? 35660 : 19441;
-    const currentLevel: number = energyMode === 'billing' ? 2 : 1;
-    const levelRangeText = energyMode === 'billing' ? "현재 누진 2구간 (201~400kWh)" : "현재 누진 1구간 (0~200kWh)";
-    const expectedUsage = energyMode === 'billing' ? 232 : 201;
-    const expectedCost = energyMode === 'billing' ? 38339 : 34223;
-    const trianglePosition = energyMode === 'billing' ? '50%' : '16%';
+    const calculateElectricBill = (usage: number) => {
+        let baseCharge = 910;
+        let energyCharge = 0;
+        
+        if (usage <= 200) {
+            baseCharge = 910;
+            energyCharge = usage * 120;
+        } else if (usage <= 400) {
+            baseCharge = 1600;
+            energyCharge = (200 * 120) + ((usage - 200) * 214.6);
+        } else {
+            baseCharge = 7300;
+            energyCharge = (200 * 120) + (200 * 214.6) + ((usage - 400) * 307.3);
+        }
+        
+        const climateCharge = Math.round(usage * 9);
+        const fuelAdjustment = Math.round(usage * 5);
+        
+        const subtotal = baseCharge + energyCharge + climateCharge + fuelAdjustment;
+        const vat = Math.round(subtotal * 0.1);
+        const fund = Math.floor((subtotal * 0.037) / 10) * 10;
+        
+        return Math.floor((subtotal + vat + fund) / 10) * 10;
+    };
+
+    const totalUsage = energySummary?.totalUsage || 212;
+
+    const currentUsage = energyMode === 'billing' ? Math.round(totalUsage) : Math.round(totalUsage * 0.7);
+    const currentCost = calculateElectricBill(currentUsage);
+    const currentLevel = currentUsage <= 200 ? 1 : currentUsage <= 400 ? 2 : 3;
+    const levelRangeText = currentLevel === 1 
+        ? "현재 누진 1구간 (0~200kWh)" 
+        : currentLevel === 2 
+            ? "현재 누진 2구간 (201~400kWh)" 
+            : "현재 누진 3구간 (400kWh 초과)";
+            
+    const expectedUsage = Math.round(currentUsage * 1.1);
+    const expectedCost = calculateElectricBill(expectedUsage);
+    
+    // Triangle indicator positioning
+    const trianglePosition = currentLevel === 1 
+        ? `${Math.max(10, Math.min(30, (currentUsage / 200) * 30))}%` 
+        : currentLevel === 2 
+            ? `${33 + Math.max(5, Math.min(33, ((currentUsage - 200) / 200) * 33))}%` 
+            : `${66 + Math.max(5, Math.min(33, ((currentUsage - 400) / 400) * 33))}%`;
+
+    const availableDrCount = activeIssue ? 2 : 1;
+    const participatingDrCount = 1;
 
     return (
         <div className="page-container home-wrapper">
@@ -164,11 +216,11 @@ const HomePage: React.FC = () => {
                             <span className="status-badge-label">세대 구성원</span>
                         </div>
                         <div className="status-badge-item">
-                            <span className="status-badge-val number-font green-val">3</span>
+                            <span className="status-badge-val number-font green-val">{availableDrCount}</span>
                             <span className="status-badge-label">신청가능 DR</span>
                         </div>
                         <div className="status-badge-item">
-                            <span className="status-badge-val number-font blue-val">2</span>
+                            <span className="status-badge-val number-font blue-val">{participatingDrCount}</span>
                             <span className="status-badge-label">신청완료 DR</span>
                         </div>
                     </div>
@@ -206,7 +258,7 @@ const HomePage: React.FC = () => {
 
                                 <div className="usage-summary">
                                     <div className="usage-main">
-                                        <span className="number-font main-value">{energySummary.totalUsage || currentUsage}</span>
+                                        <span className="number-font main-value">{currentUsage}</span>
                                         <span className="unit">kWh</span>
                                         <span className="detail-arrow">›</span>
                                     </div>
@@ -278,7 +330,7 @@ const HomePage: React.FC = () => {
                                         <span className="detail-arrow">›</span>
                                     </div>
                                     <div className="cost-main">
-                                        <span className="cost-value">누적 적립 235,000P · 누적 사용 219,400P</span>
+                                        <span className="cost-value">누적 적립 {((points.totalPoints || 15600) + 12000).toLocaleString()}P · 누적 사용 12,000P</span>
                                     </div>
                                 </div>
 
@@ -348,12 +400,7 @@ const HomePage: React.FC = () => {
                     </div>
                 </section>
 
-                {/* Simulation Switcher */}
-                <div className="simulation-switch-panel" style={{ marginTop: '30px', marginBottom: '20px' }}>
-                    <button className="sim-toggle-btn" onClick={toggleAuthState}>
-                        🔄 인증상태 변경 (현재: {isAuthenticated ? 'ALL PASS' : '미인증 세대락'})
-                    </button>
-                </div>
+
             </main>
 
             <BottomNav />
