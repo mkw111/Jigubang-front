@@ -1,0 +1,62 @@
+.method-list {
+    margin-top: 40px;
+}
+
+.method-item {
+    display: flex;
+    align-items: center;
+    padding: 24px;
+    background: white;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid #F0F4F8;
+    transition: all 0.2s;
+}
+
+.method-item:active {
+    transform: scale(0.98);
+    background-color: #F8FAFC;
+}
+
+.method-icon {
+    font-size: 32px;
+    margin-right: 20px;
+    background: #F0F7FF;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+}
+
+.method-info {
+    flex: 1;
+}
+
+.method-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #263238;
+}
+
+.method-desc {
+    font-size: 14px;
+    color: #78909C;
+    margin-top: 4px;
+}
+
+.method-arrow {
+    color: #CFD8DC;
+    font-size: 24px;
+}
+
+.notice-box {
+    margin-top: 40px;
+    padding: 20px;
+    color: #90A4AE;
+    font-size: 13px;
+    line-height: 1.6;
+}

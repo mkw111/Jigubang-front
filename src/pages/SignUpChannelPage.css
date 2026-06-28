@@ -1,0 +1,92 @@
+.signup-channel-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Wizard progress indicators */
+.wizard-progress-bar {
+    width: 100%;
+    height: 7px;
+    background-color: var(--color-border);
+    position: relative;
+}
+
+.wizard-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wizard-step-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.wizard-step-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--color-text-dark);
+    margin: 0;
+}
+
+.wizard-step-number {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--color-primary);
+}
+
+.wizard-step-number .muted {
+    color: var(--color-text-light);
+    font-weight: 500;
+}
+
+/* Channel selection buttons */
+.channel-button-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.channel-btn {
+    width: 100%;
+    height: 52px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-card);
+    color: var(--color-text-dark);
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.channel-btn:hover {
+    border-color: var(--color-primary);
+}
+
+.channel-btn.active {
+    border-color: var(--color-primary);
+    background-color: var(--color-bg-light-blue);
+    color: var(--color-primary-dark);
+    box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.channel-btn.disabled {
+    background-color: #F2F2F2;
+    border-color: #E2E2E2;
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+}
+
+.channel-btn.disabled:hover {
+    border-color: #E2E2E2;
+}
+
+.warning-card {
+    border: 1px solid rgba(0, 168, 255, 0.15);
+    background-color: var(--color-bg-light-blue);
+}
