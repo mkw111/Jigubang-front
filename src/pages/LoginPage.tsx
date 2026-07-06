@@ -1,12 +1,46 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './LandingPage.css';
 
 const LoginPage: React.FC = () => {
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [password, setPassword] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
+    const prefilled = location.state?.prefilledPhone || '';
+    
+    const [phoneNumber, setPhoneNumber] = useState(prefilled);
+    const [password, setPassword] = useState('');
+
+    const handleLoginSuccess = async (data: any) => {
+        let aptInfo = { aptName: '지구방 아파트', dong: '', ho: '' };
+        try {
+            const aptRes = await axios.get(`/api/apt/${data.hoSeq}`);
+            if (aptRes.status === 200 && aptRes.data) {
+                aptInfo = {
+                    aptName: aptRes.data.aptName,
+                    dong: aptRes.data.dong,
+                    ho: aptRes.data.ho
+                };
+            }
+        } catch (err) {
+            console.warn("Apt details fetch failed, utilizing defaults", err);
+        }
+
+        const isApproved = data.approved;
+
+        localStorage.setItem('user', JSON.stringify({
+            uuid: data.uuid,
+            name: data.name,
+            phoneNumber: phoneNumber,
+            aptName: aptInfo.aptName,
+            dong: aptInfo.dong,
+            ho: aptInfo.ho,
+            hoSeq: data.hoSeq,
+            isAuthenticated: isApproved,
+            householdsType: data.householdsType
+        }));
+        navigate('/home');
+    };
 
     const handleLogin = async () => {
         if (!phoneNumber || !password) {
@@ -22,36 +56,31 @@ const LoginPage: React.FC = () => {
                 pushToken: fcmToken || null
             });
             if (res.status === 200 && res.data) {
-                // Fetch actual apartment details by hoSeq
-                let aptInfo = { aptName: '지구방 아파트', dong: '', ho: '' };
-                try {
-                    const aptRes = await axios.get(`/api/apt/${res.data.hoSeq}`);
-                    if (aptRes.status === 200 && aptRes.data) {
-                        aptInfo = {
-                            aptName: aptRes.data.aptName,
-                            dong: aptRes.data.dong,
-                            ho: aptRes.data.ho
-                        };
+                if (res.data.status === 'DELETE_REQUESTED') {
+                    const confirmRestore = window.confirm(
+                        "탈퇴 신청 대기(유예) 중인 계정입니다.\n\n계정을 복구하고 로그인 하시겠습니까?"
+                    );
+                    if (confirmRestore) {
+                        try {
+                            const restoreRes = await axios.post('/api/users/cancel-withdrawal', {
+                                phoneNumber,
+                                password
+                            });
+                            if (restoreRes.status === 200 && restoreRes.data) {
+                                alert("계정이 성공적으로 복구되었습니다!");
+                                handleLoginSuccess(restoreRes.data);
+                                return;
+                            }
+                        } catch (restoreErr: any) {
+                            alert("계정 복구 실패: " + (restoreErr.response?.data?.message || restoreErr.message));
+                            return;
+                        }
+                    } else {
+                        return;
                     }
-                } catch (err) {
-                    console.warn("Apt details fetch failed, utilizing defaults", err);
                 }
 
-                // Use backend-supplied approved status directly
-                const isApproved = res.data.approved;
-
-                localStorage.setItem('user', JSON.stringify({
-                    uuid: res.data.uuid,
-                    name: res.data.name,
-                    phoneNumber: phoneNumber,
-                    aptName: aptInfo.aptName,
-                    dong: aptInfo.dong,
-                    ho: aptInfo.ho,
-                    hoSeq: res.data.hoSeq,
-                    isAuthenticated: isApproved,
-                    householdsType: res.data.householdsType
-                }));
-                navigate('/home');
+                handleLoginSuccess(res.data);
             }
         } catch (e: any) {
             console.error("Login failed:", e);
@@ -72,7 +101,7 @@ const LoginPage: React.FC = () => {
 
             <div className="logo-section" style={{ marginTop: '30px', marginBottom: '40px' }}>
                 <div className="logo-glow" style={{ width: '120px', height: '120px' }}></div>
-                <img src="/logo192.png" alt="Jigubang Logo" className="logo-img" style={{ width: '70px', marginBottom: '10px' }} />
+                <img src="/images/jigubang_3d.png" alt="Jigubang Logo" className="logo-img" style={{ width: '70px', height: '70px', objectFit: 'contain', zIndex: 2, marginBottom: '10px' }} />
                 <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-dark)', margin: 0 }}>Sign In</h2>
             </div>
 

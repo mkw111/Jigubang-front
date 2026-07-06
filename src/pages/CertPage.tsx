@@ -67,8 +67,33 @@ const CertPage: React.FC = () => {
                 certNumber: certNumber 
             });
             if (res.status === 200) {
-
                 setTimeLeft(0);
+                
+                // Check if account already exists and its status
+                try {
+                    const dupCheck = await axios.get(`/api/users/check-duplicate?phoneNumber=${phone}`);
+                    if (dupCheck.status === 200 && dupCheck.data) {
+                        if (dupCheck.data.exists) {
+                            if (dupCheck.data.status === 'DELETE_REQUESTED') {
+                                const confirmRestore = window.confirm(
+                                    "입력하신 휴대폰 번호는 현재 회원 탈퇴 유예 기간 중인 계정이 존재합니다.\n\n계정을 복원하시겠습니까?\n(확인을 누르시면 로그인 화면으로 이동하며, 기존 비밀번호로 로그인하면 계정이 복구됩니다.)"
+                                );
+                                if (confirmRestore) {
+                                    navigate('/login', { state: { prefilledPhone: phone } });
+                                } else {
+                                    navigate('/');
+                                }
+                            } else {
+                                alert("이미 가입되어 있는 휴대폰 번호입니다. 로그인 화면으로 이동합니다.");
+                                navigate('/login', { state: { prefilledPhone: phone } });
+                            }
+                            return;
+                        }
+                    }
+                } catch (dupErr) {
+                    console.warn("Duplicate check failed, proceeding to next registration step", dupErr);
+                }
+
                 alert("휴대폰 본인인증이 완료되었습니다.");
                 // Proceed to Step 4/5 (Apt Search)
                 navigate('/join/apt', { state: { name, phone, certNumber } });

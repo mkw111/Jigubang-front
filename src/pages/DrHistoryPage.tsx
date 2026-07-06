@@ -207,14 +207,17 @@ const DrHistoryPage: React.FC = () => {
             {/* Content */}
             <main className="app-content dr-content">
                 {/* Intro welcome Card */}
-                <div className="dr-welcome-card">
-                    <div className="dr-welcome-top">
-                        <span className="live-pulse">● LIVE</span>
-                        <span className="dr-count-label">오늘의 DR 발령 <strong>{activeIssue ? '3회' : '2회'}</strong></span>
+                <div className="dr-welcome-card" style={{ position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', zIndex: 2, position: 'relative' }}>
+                        <div className="dr-welcome-top">
+                            <span className="live-pulse">● LIVE</span>
+                            <span className="dr-count-label">오늘의 DR 발령 <strong>{activeIssue ? '3회' : '2회'}</strong></span>
+                        </div>
+                        <div className="dr-welcome-main">
+                            잠깐의 절전으로<br />지구를 지켜 볼까요?
+                        </div>
                     </div>
-                    <div className="dr-welcome-main">
-                        잠깐의 절전으로<br />지구를 지켜 볼까요?
-                    </div>
+                    <img src="/images/char_02.png" alt="Mascot" style={{ position: 'absolute', right: '16px', bottom: '-10px', width: '75px', height: '75px', objectFit: 'contain', zIndex: 1 }} />
                 </div>
 
                 {/* Cumulative Stats Dashboard */}
