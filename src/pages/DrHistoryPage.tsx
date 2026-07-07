@@ -62,6 +62,35 @@ const DrHistoryPage: React.FC = () => {
         fetchData();
     }, [user.hoSeq]);
 
+    const handleJoinDrProgram = async (challenge: DRChallenge) => {
+        let drProgramType = 'KPX';
+        if (challenge.type.includes('경남') || challenge.type.includes('GYEONGNAM') || challenge.type.includes('경남 DR')) {
+            drProgramType = 'GYEONGNAM';
+        }
+
+        try {
+            const response = await fetch(`/api/dr/programs/${drProgramType}/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    apiKey: 'jigubang-web-api-key',
+                    documentId: `doc-${challenge.id}`
+                })
+            });
+
+            if (response.ok) {
+                alert(`${challenge.type} 프로그램 가입 신청이 성공적으로 완료되었습니다!`);
+                setSelectedMission(null);
+            } else {
+                alert('가입 신청 실패');
+            }
+        } catch (err: any) {
+            alert('서버 통신 오류: ' + err.message);
+        }
+    };
+
     // Format LocalDateTime string to HH:MM
     const formatTime = (dateTimeStr: string) => {
         if (!dateTimeStr) return '';
@@ -324,8 +353,7 @@ const DrHistoryPage: React.FC = () => {
                         <div className="modal-footer">
                             {selectedMission.status === 'available' ? (
                                 <button className="modal-action-btn primary" onClick={() => {
-                                    alert('DR 신청이 완료되었습니다.');
-                                    setSelectedMission(null);
+                                    handleJoinDrProgram(selectedMission);
                                 }}>신청하기</button>
                             ) : selectedMission.status === 'participating' ? (
                                 <button className="modal-action-btn danger" onClick={() => {

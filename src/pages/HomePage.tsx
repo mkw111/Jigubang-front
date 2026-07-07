@@ -48,10 +48,10 @@ const HomePage: React.FC = () => {
                 }
 
                 // Fetch household members to count them dynamically
-                const membersRes = await fetch(`/api/households/move-in/list?hoSeq=${hoSeq}`);
+                const membersRes = await fetch(`/api/households/members?hoSeq=${hoSeq}`);
                 if (membersRes.ok) {
                     const data = await membersRes.json();
-                    // Include existing members and pending approved ones
+                    // Include approved members
                     if (Array.isArray(data)) {
                         const approved = data.filter((m: any) => m.approvedYn === 'Y').length;
                         setMemberCount(approved > 0 ? approved : 4);
@@ -102,7 +102,27 @@ const HomePage: React.FC = () => {
         navigate('/login');
     };
 
-
+    // Handle residency verification request (notifies admin via push task)
+    const handleRequestResident = async () => {
+        if (!user.hoSeq) return;
+        try {
+            const res = await fetch('/api/households/resident/request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ hoSeq: user.hoSeq })
+            });
+            if (res.ok) {
+                alert('실거주 인증 요청이 완료되었습니다. 관리자 승인 후 확인 가능합니다.');
+            } else {
+                alert('이미 요청 중이거나 요청을 완료할 수 없습니다.');
+            }
+        } catch (error) {
+            console.error("Failed to request resident certification:", error);
+            alert('인증 요청 중 오류가 발생했습니다.');
+        }
+    };
 
     const isAuthenticated = user.isAuthenticated !== false; // defaults to true
 
@@ -305,7 +325,7 @@ const HomePage: React.FC = () => {
                                     <div className="unauth-card-mask">
                                         <div className="lock-icon">🔒</div>
                                         <p className="lock-text">실거주 인증 후 에너지 데이터<br />확인이 가능합니다.</p>
-                                        <button className="auth-btn" onClick={() => navigate('/join/apt')}>
+                                        <button className="auth-btn" onClick={handleRequestResident}>
                                             실거주 인증하기
                                         </button>
                                     </div>

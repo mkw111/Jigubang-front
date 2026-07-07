@@ -35,12 +35,55 @@ const MyPage: React.FC = () => {
         powerUsage: true
     });
     
+    const [residentApproved, setResidentApproved] = useState(false);
+
+    const checkResidentApproved = async (hoSeq: number) => {
+        if (!hoSeq) return;
+        try {
+            const response = await fetch(`/api/households/${hoSeq}/approved`);
+            if (response.ok) {
+                const approved = await response.json();
+                setResidentApproved(approved);
+                
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const parsedUser = JSON.parse(userStr);
+                    parsedUser.isAuthenticated = approved;
+                    setUser(parsedUser);
+                    localStorage.setItem('user', JSON.stringify(parsedUser));
+                }
+            }
+        } catch (e) {
+            console.error("Failed to check resident approved status", e);
+        }
+    };
+
+    const handleRequestResident = async () => {
+        if (!user.hoSeq) return;
+        try {
+            const response = await fetch('/api/households/resident/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hoSeq: user.hoSeq })
+            });
+            if (response.ok) {
+                alert('실거주 인증 요청이 완료되었습니다. 관리자 승인 후 완료됩니다.');
+                checkResidentApproved(user.hoSeq);
+            } else {
+                alert('이미 요청 중이거나 요청을 완료할 수 없습니다.');
+            }
+        } catch (err: any) {
+            alert('서버 통신 오류: ' + err.message);
+        }
+    };
+
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
             const parsedUser = JSON.parse(userStr);
             setUser(parsedUser);
             fetchMembers(parsedUser.hoSeq);
+            checkResidentApproved(parsedUser.hoSeq);
         } else {
             navigate('/login');
         }
@@ -458,8 +501,19 @@ const MyPage: React.FC = () => {
                 </header>
                 <div className="app-content drawer-content" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--color-text-muted)' }}>인증된 우리집 주소</span>
-                        <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--color-text-dark)', lineHeight: 1.4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--color-text-muted)' }}>인증된 우리집 주소</span>
+                            <span className="auth-status-badge" style={{ 
+                                backgroundColor: residentApproved ? 'var(--color-success)' : '#E6A23C', 
+                                color: 'white', 
+                                fontSize: '11px', 
+                                padding: '3px 8px', 
+                                borderRadius: '12px' 
+                            }}>
+                                {residentApproved ? '실거주 인증됨' : '실거주 미인증'}
+                            </span>
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--color-text-dark)', lineHeight: 1.4, marginTop: '4px' }}>
                             {user.aptName || '숲속마을 벨라시온 아파트'}<br />
                             {user.dong ? `${user.dong}동 ${user.ho}호` : '701동 1001호'}
                         </div>
@@ -467,6 +521,22 @@ const MyPage: React.FC = () => {
                             지번주소 : 경기도 고양시 일산동구 숲속마을1로 116
                         </div>
                     </div>
+
+                    {!residentApproved && (
+                        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: '#FFF6E0', border: '1px solid #FADEB1' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#E6A23C' }}>실거주 인증이 필요합니다</span>
+                            <span style={{ fontSize: '11px', color: '#909399', lineHeight: 1.4 }}>
+                                실거주 승인이 완료되어야 실시간 에너지 조회 및 탄소배출량 모니터링, DR 챌린지 등의 전체 기능을 원활하게 이용할 수 있습니다.
+                            </span>
+                            <button 
+                                className="btn login-btn"
+                                onClick={handleRequestResident}
+                                style={{ height: '38px', fontSize: '12px', backgroundColor: '#E6A23C', border: 'none' }}
+                            >
+                                관리사무소에 실거주 인증 요청하기
+                            </button>
+                        </div>
+                    )}
 
                     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-bg-main)', paddingBottom: '10px' }}>
