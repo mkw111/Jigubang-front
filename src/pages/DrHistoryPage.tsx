@@ -20,8 +20,10 @@ const DrHistoryPage: React.FC = () => {
     const [selectedMission, setSelectedMission] = useState<DRChallenge | null>(null);
 
     const [user, setUser] = useState<any>({});
-    const [points, setPoints] = useState<any>({ totalPoints: 0, kpxPoints: 0, gyeongnamPoints: 0 });
     const [activeIssue, setActiveIssue] = useState<any>(null);
+    const [drSummary, setDrSummary] = useState<any>(null);
+    const [recentMissions, setRecentMissions] = useState<any[]>([]);
+    const [drCards, setDrCards] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     // Load user profile
@@ -38,19 +40,35 @@ const DrHistoryPage: React.FC = () => {
     useEffect(() => {
         if (!user.hoSeq) return;
 
+        const token = user.token;
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const fetchData = async () => {
             try {
-                const [pointsRes, activeRes] = await Promise.all([
-                    fetch(`/api/households/${user.hoSeq}/points`),
-                    fetch(`/api/dr/active-issue`)
+                const [activeRes, summaryRes, recentRes, cardsRes] = await Promise.all([
+                    fetch(`/api/dr/active-issue`, { headers }),
+                    fetch(`/api/dr/summary`, { headers }),
+                    fetch(`/api/dr/recent`, { headers }),
+                    fetch(`/api/dr/cards`, { headers })
                 ]);
-                if (pointsRes.ok) {
-                    const data = await pointsRes.json();
-                    setPoints(data);
-                }
                 if (activeRes.ok && activeRes.status !== 204) {
                     const data = await activeRes.json();
                     setActiveIssue(data);
+                }
+                if (summaryRes.ok) {
+                    const data = await summaryRes.json();
+                    setDrSummary(data);
+                }
+                if (recentRes.ok) {
+                    const data = await recentRes.json();
+                    setRecentMissions(data);
+                }
+                if (cardsRes.ok) {
+                    const data = await cardsRes.json();
+                    setDrCards(data);
                 }
             } catch (err) {
                 console.error("Failed to load DR data", err);
@@ -60,7 +78,7 @@ const DrHistoryPage: React.FC = () => {
         };
 
         fetchData();
-    }, [user.hoSeq]);
+    }, [user.hoSeq, user.token]);
 
     const handleJoinDrProgram = async (challenge: DRChallenge) => {
         let drProgramType = 'KPX';
@@ -69,11 +87,17 @@ const DrHistoryPage: React.FC = () => {
         }
 
         try {
+            const token = user.token;
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const response = await fetch(`/api/dr/programs/${drProgramType}/join`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify({
                     apiKey: 'jigubang-web-api-key',
                     documentId: `doc-${challenge.id}`
@@ -83,6 +107,12 @@ const DrHistoryPage: React.FC = () => {
             if (response.ok) {
                 alert(`${challenge.type} 프로그램 가입 신청이 성공적으로 완료되었습니다!`);
                 setSelectedMission(null);
+                // Refresh cards status
+                const cardsRes = await fetch(`/api/dr/cards`, { headers });
+                if (cardsRes.ok) {
+                    const data = await cardsRes.json();
+                    setDrCards(data);
+                }
             } else {
                 alert('가입 신청 실패');
             }
@@ -105,12 +135,8 @@ const DrHistoryPage: React.FC = () => {
     };
 
     // Calculate dynamic stats
-    const kpxSuccess = Math.floor((points.kpxPoints || 0) / 1000);
-    const gyeongnamSuccess = Math.floor((points.gyeongnamPoints || 0) / 800);
-    const totalSuccess = kpxSuccess + gyeongnamSuccess;
-    
-    // Participating count is 1, failed count is 1
-    const totalParticipation = totalSuccess + 2; 
+    const totalParticipation = drSummary?.total || 0;
+    const totalSuccess = drSummary?.success || 0;
     const successRate = totalParticipation > 0 ? parseFloat(((totalSuccess / totalParticipation) * 100).toFixed(1)) : 0.0;
 
     // Dynamically construct challenges list based on database values
@@ -118,83 +144,55 @@ const DrHistoryPage: React.FC = () => {
 
     // 1. Add active issue if exists
     if (activeIssue) {
+        const isJoined = activeIssue.drType === 'KPX' 
+            ? drCards?.isHouseholdsKpxDr 
+            : (activeIssue.drType === 'GYEONGNAM' ? drCards?.isHouseholdsGyeongnamDr : false);
+
         drChallenges.push({
             id: activeIssue.id,
             title: `${activeIssue.drType} 긴급 절전 국민쉼표 챌린지`,
             type: `${activeIssue.drType} DR`,
             points: activeIssue.successPoint || 1000,
-            status: 'available',
+            status: isJoined ? 'participating' : 'available',
             date: '오늘',
             time: `${formatTime(activeIssue.startAt)} ~ ${formatTime(activeIssue.endAt)}`,
             targetReduction: '0.2 kWh 감축'
         });
-    } else {
-        // Default future mission to apply
-        drChallenges.push({
-            id: 999,
-            title: '지구방 저녁 황금시간 절전 미션',
-            type: '지구방 DR',
-            points: 1500,
-            status: 'available',
-            date: '오늘',
-            time: '19:00 ~ 20:00',
-            targetReduction: '0.3 kWh 감축'
-        });
     }
 
-    // 2. Add participating items
-    drChallenges.push({
-        id: 998,
-        title: '아파트 공동 에너지 쉼표',
-        type: '경남 DR',
-        points: 800,
-        status: 'participating',
-        date: '오늘',
-        time: '21:00 ~ 22:00',
-        targetReduction: '0.2 kWh 감축'
-    });
+    // 2. Map recent history entries from backend
+    if (Array.isArray(recentMissions)) {
+        recentMissions.forEach((item: any, idx: number) => {
+            const isSuccess = item.result.startsWith('+');
+            const isFailed = item.result === '실패';
+            const status = isSuccess ? 'success' : (isFailed ? 'failed' : 'participating');
+            
+            let pts = 0;
+            if (isSuccess) {
+                pts = parseInt(item.result.replace(/[^0-9]/g, '')) || 0;
+            }
 
-    // 3. Add dynamic successful history entries based on user's points
-    let idx = 1;
-    for (let i = 0; i < kpxSuccess; i++) {
-        drChallenges.push({
-            id: 100 + idx,
-            title: `국민쉼표 일상 절전 성공 #${idx}`,
-            type: 'KPX DR',
-            points: 1000,
-            status: 'success',
-            date: `06.${String(Math.max(1, 25 - idx)).padStart(2, '0')}`,
-            time: '14:00 ~ 15:00',
-            targetReduction: '0.4 kWh 감축'
+            let dateStr = '이력';
+            let timeStr = item.period;
+            if (item.period.includes('~')) {
+                const parts = item.period.split(' ~ ');
+                const startPart = parts[0]; 
+                timeStr = startPart.split(' ')[1] + ' ~ ' + parts[1];
+                dateStr = startPart.split(' ')[0].substring(5); // "MM-DD"
+            }
+
+            drChallenges.push({
+                id: 100 + idx,
+                title: `${item.dr} 미션 참여 이력`,
+                type: item.dr,
+                points: pts,
+                status: status,
+                date: dateStr,
+                time: timeStr,
+                targetReduction: '0.2 kWh 감축'
+            });
         });
-        idx++;
     }
-
-    for (let i = 0; i < gyeongnamSuccess; i++) {
-        drChallenges.push({
-            id: 200 + idx,
-            title: `경남 에너지 절약 공동 실천 #${idx}`,
-            type: '경남 DR',
-            points: 800,
-            status: 'success',
-            date: `06.${String(Math.max(1, 24 - idx)).padStart(2, '0')}`,
-            time: '18:00 ~ 19:00',
-            targetReduction: '0.3 kWh 감축'
-        });
-        idx++;
-    }
-
-    // 4. Add a failed item for realistic statistics
-    drChallenges.push({
-        id: 300,
-        title: '6월 평일 저녁 퇴근 시간대 감축 실패',
-        type: '지구방 DR',
-        points: 1000,
-        status: 'failed',
-        date: '06.12',
-        time: '19:00 ~ 20:00',
-        targetReduction: '0.3 kWh 감축'
-    });
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -275,8 +273,8 @@ const DrHistoryPage: React.FC = () => {
                     </div>
 
                     <div className="dr-summary-strip">
-                        <span>참여 중 <strong>1개</strong></span>
-                        <span>신청 가능 <strong>{activeIssue ? '1개' : '1개'}</strong></span>
+                        <span>참여 중 <strong>{drChallenges.filter(c => c.status === 'participating').length}개</strong></span>
+                        <span>신청 가능 <strong>{drChallenges.filter(c => c.status === 'available').length}개</strong></span>
                         <span>성공 완료 <strong>{totalSuccess}개</strong></span>
                     </div>
                 </div>
@@ -286,29 +284,35 @@ const DrHistoryPage: React.FC = () => {
                     <h3 className="dr-section-title">DR 미션 리스트</h3>
                     
                     <div className="dr-list-container">
-                        {drChallenges.map((challenge) => (
-                            <div 
-                                key={challenge.id} 
-                                className={`card dr-challenge-item ${challenge.status === 'failed' ? 'dimmed' : ''}`}
-                                onClick={() => setSelectedMission(challenge)}
-                            >
-                                <div className="challenge-left">
-                                    <div className="badge-row">
-                                        {getStatusBadge(challenge.status)}
-                                        <span className="chal-type">{challenge.type}</span>
+                        {drChallenges.length > 0 ? (
+                            drChallenges.map((challenge) => (
+                                <div 
+                                    key={challenge.id} 
+                                    className={`card dr-challenge-item ${challenge.status === 'failed' ? 'dimmed' : ''}`}
+                                    onClick={() => setSelectedMission(challenge)}
+                                >
+                                    <div className="challenge-left">
+                                        <div className="badge-row">
+                                            {getStatusBadge(challenge.status)}
+                                            <span className="chal-type">{challenge.type}</span>
+                                        </div>
+                                        <div className="chal-title">{challenge.title}</div>
+                                        <div className="chal-time">{challenge.date} | {challenge.time}</div>
                                     </div>
-                                    <div className="chal-title">{challenge.title}</div>
-                                    <div className="chal-time">{challenge.date} | {challenge.time}</div>
-                                </div>
 
-                                <div className="challenge-right">
-                                    <span className={`points-val number-font ${challenge.status === 'success' || challenge.status === 'participating' ? 'green-color' : ''}`}>
-                                        {challenge.status === 'failed' ? '0' : `+${challenge.points.toLocaleString()}`}
-                                    </span>
-                                    <span className="points-unit">P</span>
+                                    <div className="challenge-right">
+                                        <span className={`points-val number-font ${challenge.status === 'success' || challenge.status === 'participating' ? 'green-color' : ''}`}>
+                                            {challenge.status === 'failed' ? '0' : `+${challenge.points.toLocaleString()}`}
+                                        </span>
+                                        <span className="points-unit">P</span>
+                                    </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="no-data-display" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                                참여 가능한 활성 DR 미션이나 과거 참여 이력이 없습니다.
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </main>

@@ -52,52 +52,40 @@ const RankingPage: React.FC = () => {
         fetchData();
     }, [user.hoSeq]);
 
-    // Real API dynamic values or fallback
-    const myUsage = compareData?.myUsage || summaryData?.thisMonthUsage || 214;
-    const avgUsage = compareData?.averageUsage || 235;
-    const percentile = compareData?.percentile || 42.0;
+    // Real API dynamic values or fallback to 0
+    const myUsage = compareData?.myUsage || summaryData?.thisMonthUsage || 0;
+    const avgUsage = compareData?.averageUsage || 0;
+    const percentile = compareData?.percentile || 0;
 
     // Calculate real savings percentage
-    const realSavingsPct = avgUsage > 0 ? ((avgUsage - myUsage) / avgUsage * 100).toFixed(1) : '20.5';
+    const realSavingsPct = avgUsage > 0 ? ((avgUsage - myUsage) / avgUsage * 100).toFixed(1) : '0';
     const mySavingsStr = parseFloat(realSavingsPct) >= 0 ? `${realSavingsPct}%` : `-${Math.abs(parseFloat(realSavingsPct))}%`;
     
     // Calculate custom score
-    const myScore = Math.max(50, Math.min(100, Math.round(90 + parseFloat(realSavingsPct) * 0.5)));
+    const myScore = myUsage > 0 ? Math.max(50, Math.min(100, Math.round(90 + parseFloat(realSavingsPct) * 0.5))) : 0;
 
     // Calculate dynamic rank (e.g. out of 100 households)
-    const myRankNum = Math.max(1, Math.round(percentile));
+    const myRankNum = myUsage > 0 ? Math.max(1, Math.round(percentile)) : 0;
 
-    const myAptRankings: RankItem[] = [
-        { rank: 1, name: '702동 1402호', score: 99.4, savings: '28.4%' },
-        { rank: 2, name: '704동 301호', score: 97.8, savings: '26.1%' },
-        { rank: 3, name: '701동 504호', score: 95.5, savings: '24.8%' },
-        { rank: 4, name: '703동 1205호', score: 92.1, savings: '22.3%' },
+    const myAptRankings: RankItem[] = myUsage > 0 ? [
         { 
             rank: myRankNum, 
-            name: user.dong ? `${user.dong}동 ${user.ho}호 (나)` : '701동 1001호 (나)', 
+            name: user.dong ? `${user.dong}동 ${user.ho}호 (나)` : '지구방 세대 (나)', 
             score: myScore, 
             savings: mySavingsStr, 
             isMe: true 
-        },
-        { rank: myRankNum + 1, name: '705동 902호', score: 87.6, savings: '18.9%' },
-        { rank: myRankNum + 2, name: '702동 1101호', score: 85.3, savings: '17.2%' }
-    ].sort((a, b) => a.rank - b.rank); // sort dynamically by rank
+        }
+    ] : [];
 
-    const nationalRankings: RankItem[] = [
-        { rank: 1, name: '목동 신시가지 1단지', score: 99.8, savings: '32.1%' },
-        { rank: 2, name: '반포 자이 아파트', score: 98.9, savings: '30.4%' },
-        { rank: 3, name: '분당 시범 현대아파트', score: 98.1, savings: '29.7%' },
+    const nationalRankings: RankItem[] = myUsage > 0 ? [
         { 
             rank: myRankNum + 10, 
-            name: `${user.aptName || '신길경남 아파트'} (나)`, 
+            name: `${user.aptName || '지구방 아파트'} (나)`, 
             score: Math.max(50, myScore - 5), 
             savings: mySavingsStr, 
             isMe: true 
-        },
-        { rank: 15, name: '해운대 엘시티', score: 93.5, savings: '22.9%' },
-        { rank: 18, name: '송도 더샵 퍼스트월드', score: 91.8, savings: '21.5%' },
-        { rank: 22, name: '대구 두산위브더제니스', score: 89.9, savings: '20.1%' }
-    ].sort((a, b) => a.rank - b.rank);
+        }
+    ] : [];
 
     const currentRankings = scope === 'myApt' ? myAptRankings : nationalRankings;
 
@@ -139,7 +127,9 @@ const RankingPage: React.FC = () => {
                         </div>
                     </div>
                     <div className="my-rank-status">
-                        {scope === 'myApt' ? (
+                        {myUsage <= 0 ? (
+                            <>실거주 인증 완료 후 원격검침 사용량 데이터에 따른 랭킹 조회가 가능합니다.</>
+                        ) : scope === 'myApt' ? (
                             <>우리집은 현재 단지 내 <strong>상위 {percentile}% ({myRankNum}위)</strong> 입니다.</>
                         ) : (
                             <>우리 단지는 현재 전국 <strong>상위 {percentile + 5}% ({myRankNum + 10}위)</strong> 입니다.</>
@@ -173,25 +163,31 @@ const RankingPage: React.FC = () => {
 
                 {/* Ranking List */}
                 <div className="ranking-list-container">
-                    {currentRankings.map((item) => (
-                        <div 
-                            key={item.rank + '-' + item.name} 
-                            className={`card ranking-list-item ${item.isMe ? 'highlight-me' : ''}`}
-                        >
-                            <div className="rank-col">
-                                {getBadge(item.rank)}
+                    {currentRankings.length > 0 ? (
+                        currentRankings.map((item) => (
+                            <div 
+                                key={item.rank + '-' + item.name} 
+                                className={`card ranking-list-item ${item.isMe ? 'highlight-me' : ''}`}
+                            >
+                                <div className="rank-col">
+                                    {getBadge(item.rank)}
+                                </div>
+                                <div className="name-col">
+                                    <span className={`target-name ${item.isMe ? 'bold' : ''}`}>{item.name}</span>
+                                </div>
+                                <div className="savings-col number-font">
+                                    {item.savings}
+                                </div>
+                                <div className="score-col number-font">
+                                    {item.score}점
+                                </div>
                             </div>
-                            <div className="name-col">
-                                <span className={`target-name ${item.isMe ? 'bold' : ''}`}>{item.name}</span>
-                            </div>
-                            <div className="savings-col number-font">
-                                {item.savings}
-                            </div>
-                            <div className="score-col number-font">
-                                {item.score}점
-                            </div>
+                        ))
+                    ) : (
+                        <div className="no-data-display" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                            집계된 에너지 사용량 랭킹 데이터가 존재하지 않습니다.
                         </div>
-                    ))}
+                    )}
                 </div>
             </main>
 
