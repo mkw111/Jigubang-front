@@ -46,8 +46,13 @@ function App() {
           if (userStr) {
             const user = JSON.parse(userStr);
             if (user && user.uuid) {
+              const headers: Record<string, string> = {};
+              if (user.token) {
+                headers['Authorization'] = `Bearer ${user.token}`;
+              }
               fetch(`/api/users/update-push-token?uuid=${encodeURIComponent(user.uuid)}&pushToken=${encodeURIComponent(data.token)}`, {
-                method: 'POST'
+                method: 'POST',
+                headers
               }).catch(err => console.error("Failed to update push token in backend", err));
             }
           }

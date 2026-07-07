@@ -37,10 +37,28 @@ const MyPage: React.FC = () => {
     
     const [residentApproved, setResidentApproved] = useState(false);
 
+    const getAuthHeaders = (additionalHeaders: Record<string, string> = {}): Record<string, string> => {
+        const userStr = localStorage.getItem('user');
+        const headers: Record<string, string> = { ...additionalHeaders };
+        if (userStr) {
+            try {
+                const parsed = JSON.parse(userStr);
+                if (parsed && parsed.token) {
+                    headers['Authorization'] = `Bearer ${parsed.token}`;
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        return headers;
+    };
+
     const checkResidentApproved = async (hoSeq: number) => {
         if (!hoSeq) return;
         try {
-            const response = await fetch(`/api/households/${hoSeq}/approved`);
+            const response = await fetch(`/api/households/${hoSeq}/approved`, {
+                headers: getAuthHeaders()
+            });
             if (response.ok) {
                 const approved = await response.json();
                 setResidentApproved(approved);
@@ -63,7 +81,7 @@ const MyPage: React.FC = () => {
         try {
             const response = await fetch('/api/households/resident/request', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ hoSeq: user.hoSeq })
             });
             if (response.ok) {
@@ -94,7 +112,9 @@ const MyPage: React.FC = () => {
         if (!seq) return;
         setLoadingMembers(true);
         try {
-            const response = await fetch(`/api/households/members?hoSeq=${seq}`);
+            const response = await fetch(`/api/households/members?hoSeq=${seq}`, {
+                headers: getAuthHeaders()
+            });
             if (response.ok) {
                 const data = await response.json();
                 setMembers(data);
@@ -113,7 +133,7 @@ const MyPage: React.FC = () => {
         try {
             const response = await fetch('/api/households/member/approve', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ memberUuid: member.uuid })
             });
             if (response.ok) {
@@ -138,7 +158,7 @@ const MyPage: React.FC = () => {
         try {
             const response = await fetch('/api/households/member/reject', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ memberUuid: member.uuid })
             });
             if (response.ok) {
@@ -163,7 +183,7 @@ const MyPage: React.FC = () => {
         try {
             const response = await fetch('/api/households/header/assign', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ hoSeq: user.hoSeq, newHeaderUuid: member.uuid })
             });
             if (response.ok) {
@@ -196,7 +216,7 @@ const MyPage: React.FC = () => {
             await Promise.all(waiters.map(w => 
                 fetch('/api/households/member/reject', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ memberUuid: w.uuid })
                 })
             ));
@@ -449,9 +469,9 @@ const MyPage: React.FC = () => {
                             try {
                                 const response = await fetch('/api/push/test', {
                                     method: 'POST',
-                                    headers: {
+                                    headers: getAuthHeaders({
                                         'Content-Type': 'application/json',
-                                    },
+                                    }),
                                     body: JSON.stringify({
                                         token: fcmToken,
                                         title: '지구방 테스트 푸시',

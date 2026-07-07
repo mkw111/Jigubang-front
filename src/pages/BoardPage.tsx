@@ -22,11 +22,29 @@ const BoardPage: React.FC = () => {
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
 
+    const getAuthHeaders = (additionalHeaders: Record<string, string> = {}): Record<string, string> => {
+        const userStr = localStorage.getItem('user');
+        const headers: Record<string, string> = { ...additionalHeaders };
+        if (userStr) {
+            try {
+                const parsed = JSON.parse(userStr);
+                if (parsed && parsed.token) {
+                    headers['Authorization'] = `Bearer ${parsed.token}`;
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        return headers;
+    };
+
     const fetchPosts = async () => {
         if (!user.hoSeq) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/board/posts?hoSeq=${user.hoSeq}&page=0&size=20`);
+            const res = await fetch(`/api/board/posts?hoSeq=${user.hoSeq}&page=0&size=20`, {
+                headers: getAuthHeaders()
+            });
             if (res.ok) {
                 const data = await res.json();
                 // Sort posts by createdAt desc so latest shows first
@@ -54,7 +72,7 @@ const BoardPage: React.FC = () => {
         try {
             const response = await fetch('/api/board/posts', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     title: newTitle,
                     content: newContent,
@@ -83,7 +101,9 @@ const BoardPage: React.FC = () => {
         
         // Increase view count
         try {
-            await fetch(`/api/board/posts/${post.id}`);
+            await fetch(`/api/board/posts/${post.id}`, {
+                headers: getAuthHeaders()
+            });
         } catch (e) {
             // silent fail
         }
@@ -94,7 +114,9 @@ const BoardPage: React.FC = () => {
 
     const fetchComments = async (postId: number) => {
         try {
-            const response = await fetch(`/api/board/posts/${postId}/comments`);
+            const response = await fetch(`/api/board/posts/${postId}/comments`, {
+                headers: getAuthHeaders()
+            });
             if (response.ok) {
                 const data = await response.json();
                 setComments(data);
@@ -110,7 +132,7 @@ const BoardPage: React.FC = () => {
         try {
             const response = await fetch(`/api/board/posts/${selectedPost.id}/comments`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     content: newComment,
                     authorUuid: user.uuid
@@ -133,7 +155,8 @@ const BoardPage: React.FC = () => {
 
         try {
             const response = await fetch(`/api/board/posts/${postId}?uuid=${user.uuid}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: getAuthHeaders()
             });
 
             if (response.ok) {
@@ -154,7 +177,8 @@ const BoardPage: React.FC = () => {
 
         try {
             const response = await fetch(`/api/board/comments/${commentId}?uuid=${user.uuid}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: getAuthHeaders()
             });
 
             if (response.ok) {

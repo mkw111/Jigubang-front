@@ -27,11 +27,17 @@ const EnergyDetailPage: React.FC = () => {
     useEffect(() => {
         if (!user.hoSeq) return;
 
+        const token = user.token;
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const fetchData = async () => {
             try {
                 const [summaryRes, compareRes] = await Promise.all([
-                    fetch(`/api/energy/summary/${user.hoSeq}`),
-                    fetch(`/api/energy/compare/${user.hoSeq}`)
+                    fetch(`/api/energy/summary/${user.hoSeq}`, { headers }),
+                    fetch(`/api/energy/compare/${user.hoSeq}`, { headers })
                 ]);
                 if (summaryRes.ok) {
                     const data = await summaryRes.json();
@@ -49,7 +55,7 @@ const EnergyDetailPage: React.FC = () => {
         };
 
         fetchData();
-    }, [user.hoSeq]);
+    }, [user.hoSeq, user.token]);
 
     // Real API dynamic values or fallback to 0
     const myUsage = compareData?.myUsage || energySummary?.totalUsage || 0;

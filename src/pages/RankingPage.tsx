@@ -31,11 +31,18 @@ const RankingPage: React.FC = () => {
 
     useEffect(() => {
         if (!user.hoSeq) return;
+
+        const token = user.token;
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const fetchData = async () => {
             try {
                 const [compRes, sumRes] = await Promise.all([
-                    fetch(`/api/energy/compare/${user.hoSeq}`),
-                    fetch(`/api/energy/summary/${user.hoSeq}`)
+                    fetch(`/api/energy/compare/${user.hoSeq}`, { headers }),
+                    fetch(`/api/energy/summary/${user.hoSeq}`, { headers })
                 ]);
                 if (compRes.ok) {
                     setCompareData(await compRes.json());
@@ -50,7 +57,7 @@ const RankingPage: React.FC = () => {
             }
         };
         fetchData();
-    }, [user.hoSeq]);
+    }, [user.hoSeq, user.token]);
 
     // Real API dynamic values or fallback to 0
     const myUsage = compareData?.myUsage || summaryData?.thisMonthUsage || 0;
