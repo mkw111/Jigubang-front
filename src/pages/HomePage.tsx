@@ -10,11 +10,11 @@ const HomePage: React.FC = () => {
     const [energyMode, setEnergyMode] = useState<'billing' | 'monthly'>('billing'); // 'billing' (검침일) or 'monthly' (당월)
     
     // API states
-    const [energySummary, setEnergySummary] = useState<any>({ totalUsage: 212, carbonEmission: 54.8, treeCount: 2 });
-    const [points, setPoints] = useState<any>({ totalPoints: 15600, kpxPoints: 10000, gyeongnamPoints: 5600 });
-    const [activeIssue, setActiveIssue] = useState<any>(null);
+    const [energySummary, setEnergySummary] = useState<any>({ totalUsage: 0, carbonEmission: 0, treeCount: 0 });
+    const [points, setPoints] = useState<any>({ totalPoints: 0, kpxPoints: 0, gyeongnamPoints: 0 });
+    const [drCardData, setDrCardData] = useState<any>(null);
 
-    const [memberCount, setMemberCount] = useState<number>(4);
+    const [memberCount, setMemberCount] = useState<number>(0);
     
     // Load user state
     useEffect(() => {
@@ -31,45 +31,50 @@ const HomePage: React.FC = () => {
         const hoSeq = user.hoSeq;
         if (!hoSeq) return;
 
+        const token = user.token;
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const fetchData = async () => {
             try {
                 // Fetch energy summary
-                const summaryRes = await fetch(`/api/energy/summary/${hoSeq}`);
+                const summaryRes = await fetch(`/api/energy/summary/${hoSeq}`, { headers });
                 if (summaryRes.ok) {
                     const data = await summaryRes.json();
                     setEnergySummary(data);
                 }
 
                 // Fetch points
-                const pointsRes = await fetch(`/api/households/${hoSeq}/points`);
+                const pointsRes = await fetch(`/api/households/${hoSeq}/points`, { headers });
                 if (pointsRes.ok) {
                     const data = await pointsRes.json();
                     setPoints(data);
                 }
 
                 // Fetch household members to count them dynamically
-                const membersRes = await fetch(`/api/households/members?hoSeq=${hoSeq}`);
+                const membersRes = await fetch(`/api/households/members?hoSeq=${hoSeq}`, { headers });
                 if (membersRes.ok) {
                     const data = await membersRes.json();
-                    // Include approved members
                     if (Array.isArray(data)) {
                         const approved = data.filter((m: any) => m.approvedYn === 'Y').length;
-                        setMemberCount(approved > 0 ? approved : 4);
+                        setMemberCount(approved);
                     }
                 }
 
-                // Fetch active DR issue
-                const activeRes = await fetch(`/api/dr/active-issue`);
-                if (activeRes.ok && activeRes.status !== 204) {
-                    const data = await activeRes.json();
-                    setActiveIssue(data);
-                } else {
-                    setActiveIssue(null);
+
+
+                // Fetch DR cards (to get active and joined campaigns count)
+                const drCardsRes = await fetch(`/api/dr/cards`, { headers });
+                if (drCardsRes.ok) {
+                    const data = await drCardsRes.json();
+                    setDrCardData(data);
                 }
 
                 // Fetch household and user approval status dynamically from backend
                 if (user.uuid) {
-                    const statusRes = await fetch(`/api/users/${user.uuid}/status`);
+                    const statusRes = await fetch(`/api/users/${user.uuid}/status`, { headers });
                     if (statusRes.ok) {
                         const statusData = await statusRes.json();
                         const approved = statusData.approved;
@@ -94,7 +99,7 @@ const HomePage: React.FC = () => {
         };
 
         fetchData();
-    }, [user.hoSeq]);
+    }, [user.hoSeq, user.uuid, user.token]);
 
     // Handle logout
     const handleLogout = () => {
@@ -172,8 +177,8 @@ const HomePage: React.FC = () => {
             ? `${33 + Math.max(5, Math.min(33, ((currentUsage - 200) / 200) * 33))}%` 
             : `${66 + Math.max(5, Math.min(33, ((currentUsage - 400) / 400) * 33))}%`;
 
-    const availableDrCount = activeIssue ? 2 : 1;
-    const participatingDrCount = 1;
+    const availableDrCount = (drCardData?.isPossibleKpxDr ? 1 : 0) + (drCardData?.isPossibleGyeongnamDr ? 1 : 0);
+    const participatingDrCount = (drCardData?.isHouseholdsKpxDr ? 1 : 0) + (drCardData?.isHouseholdsGyeongnamDr ? 1 : 0);
 
     return (
         <div className="page-container home-wrapper">
@@ -181,7 +186,7 @@ const HomePage: React.FC = () => {
             <div className="home-gradient-header">
                 <header className="app-header home-header-transparent">
                     <div className="header-address">
-                        <span>🏠 {user.aptName || '숲속마을 벨라시온'} {user.dong ? `${user.dong}동 ${user.ho}호` : ''}</span>
+                        <span>🏠 {user.aptName || '지구방 아파트'} {user.dong ? `${user.dong}동 ${user.ho}호` : ''}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <span className="notification-bell" onClick={() => alert('알림 목록은 준비 중입니다.')}>🔔</span>
@@ -196,13 +201,13 @@ const HomePage: React.FC = () => {
                     <div className="welcome-text-container">
                         {isAuthenticated ? (
                             <>
-                                <strong>{user.name || '김화경'}님</strong>,<br />
+                                <strong>{user.name || '사용자'}님</strong>,<br />
                                 오늘도 함께 <span className="highlight-yellow">에너지</span><br />
                                 <span className="highlight-yellow">절약</span>을 해 볼까요?
                             </>
                         ) : (
                             <>
-                                <strong>{user.name || '김화경'}님</strong>,<br />
+                                <strong>{user.name || '사용자'}님</strong>,<br />
                                 관리사무소 <span className="highlight-yellow">실거주</span><br />
                                 <span className="highlight-yellow">인증</span>이 필요해요.
                             </>
