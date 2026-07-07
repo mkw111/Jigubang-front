@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import axios from "axios";
 import LandingPage from "./pages/LandingPage";
 import SignUpChannelPage from "./pages/SignUpChannelPage";
 import AptSearchPage from "./pages/AptSearchPage";
@@ -18,6 +19,21 @@ import RankingPage from "./pages/RankingPage";
 import "./App.css";
 
 function App() {
+  useEffect(() => {
+    // Initialize axios authorization header from stored user token
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user && user.token) {
+          axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
+        }
+      } catch (e) {
+        console.error("Failed to initialize Authorization header:", e);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       try {

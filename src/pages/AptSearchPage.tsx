@@ -136,7 +136,8 @@ const AptSearchPage: React.FC = () => {
             }
             const user = JSON.parse(userStr);
             try {
-                const res = await axios.post(`/api/users/change-address?uuid=${user.uuid}&hoSeq=${selectedHoSeq}`);
+                const headers = user.token ? { Authorization: `Bearer ${user.token}` } : {};
+                const res = await axios.post(`/api/users/change-address?uuid=${user.uuid}&hoSeq=${selectedHoSeq}`, null, { headers });
                 if (res.status === 200) {
                     alert('주소가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
                     localStorage.removeItem('user');

@@ -40,6 +40,9 @@ const LoginPage: React.FC = () => {
                 // Use backend-supplied approved status directly
                 const isApproved = res.data.approved;
 
+                const token = res.data.accessToken;
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
                 localStorage.setItem('user', JSON.stringify({
                     uuid: res.data.uuid,
                     name: res.data.name,
@@ -49,7 +52,8 @@ const LoginPage: React.FC = () => {
                     ho: aptInfo.ho,
                     hoSeq: res.data.hoSeq,
                     isAuthenticated: isApproved,
-                    householdsType: res.data.householdsType
+                    householdsType: res.data.householdsType,
+                    token: token
                 }));
                 navigate('/home');
             }
