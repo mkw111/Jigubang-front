@@ -37,23 +37,15 @@ const MyPage: React.FC = () => {
     
     const [residentApproved, setResidentApproved] = useState(false);
 
-    const getAvatarColor = (uuid: string) => {
-        if (!uuid) return 'var(--color-primary)';
-        const colors = [
-            '#3B82F6', // Blue
-            '#10B981', // Emerald
-            '#8B5CF6', // Violet
-            '#F59E0B', // Amber
-            '#EC4899', // Pink
-            '#06B6D4', // Cyan
-            '#6366F1'  // Indigo
-        ];
+    const getAvatarImage = (uuid: string) => {
+        if (!uuid) return '/image/캐릭터01.png';
         let hash = 0;
         for (let i = 0; i < uuid.length; i++) {
             hash = uuid.charCodeAt(i) + ((hash << 5) - hash);
         }
-        const index = Math.abs(hash) % colors.length;
-        return colors[index];
+        const index = Math.abs(hash % 19) + 1;
+        const indexStr = String(index).padStart(2, '0');
+        return `/image/캐릭터${indexStr}.png`;
     };
 
     const getAuthHeaders = (additionalHeaders: Record<string, string> = {}): Record<string, string> => {
@@ -883,13 +875,12 @@ const MyPage: React.FC = () => {
                             ) : (
                                 approvedMembers.map((member: any) => {
                                     const isSelf = member.uuid === user.uuid;
-                                    const avatarText = member.name ? member.name.charAt(0) : '?';
                                     return (
                                         <div key={member.uuid} className="member-list-card">
                                             <div className="member-item-row">
                                                 <div className="member-left-wrap">
-                                                    <div className="member-avatar" style={{ backgroundColor: getAvatarColor(member.uuid) }}>
-                                                        {avatarText}
+                                                    <div className="member-avatar" style={{ background: '#F5F6FA', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                                        <img src={getAvatarImage(member.uuid)} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     </div>
                                                     <div className="member-info-col">
                                                         <div className="member-name-tag">
@@ -944,13 +935,12 @@ const MyPage: React.FC = () => {
                                             </div>
                                         )}
                                         {waitingMembers.map((member: any) => {
-                                            const avatarText = member.name ? member.name.charAt(0) : '?';
                                             return (
                                                 <div key={member.uuid} className="member-list-card">
                                                     <div className="member-item-row">
                                                         <div className="member-left-wrap">
-                                                            <div className="member-avatar" style={{ backgroundColor: getAvatarColor(member.uuid) }}>
-                                                                {avatarText}
+                                                            <div className="member-avatar" style={{ background: '#F5F6FA', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                                                <img src={getAvatarImage(member.uuid)} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                             </div>
                                                             <div className="member-info-col">
                                                                 <div className="member-name-tag">
