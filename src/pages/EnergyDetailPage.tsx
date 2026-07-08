@@ -108,30 +108,36 @@ const EnergyDetailPage: React.FC = () => {
 
     const billDetails = calculateElectricBill(myUsage);
 
-    // Dynamic hourly chart data scaled relative to myUsage
-    const dailyData = myUsage > 0 ? [
-        { label: '09시', value: parseFloat((myUsage * 0.005).toFixed(1)) },
-        { label: '12시', value: parseFloat((myUsage * 0.012).toFixed(1)) },
-        { label: '15시', value: parseFloat((myUsage * 0.008).toFixed(1)) },
-        { label: '18시', value: parseFloat((myUsage * 0.015).toFixed(1)) },
-        { label: '21시', value: parseFloat((myUsage * 0.021).toFixed(1)) },
-        { label: '24시', value: parseFloat((myUsage * 0.010).toFixed(1)) }
-    ] : [];
+    // Map hourly data from backend or fallback to relative calculations if unavailable
+    const dailyData = energySummary?.hourlyUsages && energySummary.hourlyUsages.length > 0
+        ? energySummary.hourlyUsages.map((item: any) => ({ label: item.timeLabel, value: item.value }))
+        : (myUsage > 0 ? [
+            { label: '09시', value: parseFloat((myUsage * 0.005).toFixed(1)) },
+            { label: '12시', value: parseFloat((myUsage * 0.012).toFixed(1)) },
+            { label: '15시', value: parseFloat((myUsage * 0.008).toFixed(1)) },
+            { label: '18시', value: parseFloat((myUsage * 0.015).toFixed(1)) },
+            { label: '21시', value: parseFloat((myUsage * 0.021).toFixed(1)) },
+            { label: '24시', value: parseFloat((myUsage * 0.010).toFixed(1)) }
+        ] : []);
 
     // Find peak hour
     const peakHour = dailyData.length > 0 ? dailyData.reduce((max, curr) => curr.value > max.value ? curr : max, dailyData[0]) : null;
 
-    // Dynamic monthly chart data scaled relative to myUsage
-    const monthlyData = myUsage > 0 ? [
-        { label: '1월', value: Math.round(myUsage * 0.85) },
-        { label: '2월', value: Math.round(myUsage * 0.92) },
-        { label: '3월', value: Math.round(myUsage * 0.99) },
-        { label: '4월', value: Math.round(myUsage * 0.82) },
-        { label: '5월', value: Math.round(myUsage) }, 
-        { label: '6월(예상)', value: Math.round(myUsage * 1.09) }
-    ] : [];
+    // Map monthly data from backend or fallback if unavailable
+    const monthlyData = energySummary?.monthlyUsages && energySummary.monthlyUsages.length > 0
+        ? energySummary.monthlyUsages.map((item: any) => ({ label: item.monthLabel, value: item.value }))
+        : (myUsage > 0 ? [
+            { label: '1월', value: Math.round(myUsage * 0.85) },
+            { label: '2월', value: Math.round(myUsage * 0.92) },
+            { label: '3월', value: Math.round(myUsage * 0.99) },
+            { label: '4월', value: Math.round(myUsage * 0.82) },
+            { label: '5월', value: Math.round(myUsage) }, 
+            { label: '6월(예상)', value: Math.round(myUsage * 1.09) }
+        ] : []);
 
-    const expectedJuneUsage = Math.round(myUsage * 1.09);
+    const expectedJuneUsage = monthlyData.length > 0 
+        ? Math.round(monthlyData[monthlyData.length - 1].value) 
+        : Math.round(myUsage * 1.09);
     const expectedJuneBill = calculateElectricBill(expectedJuneUsage);
 
     // Dynamic neighbor comparison summary
@@ -284,7 +290,8 @@ const EnergyDetailPage: React.FC = () => {
                                     {monthlyData.map((d, index) => {
                                         const maxVal = Math.max(...monthlyData.map(item => item.value));
                                         const pct = maxVal > 0 ? (d.value / maxVal) * 100 : 0;
-                                        const isCurrent = d.label.includes('5월');
+                                        const currentMonthLabel = (new Date().getMonth() + 1) + "월";
+                                        const isCurrent = d.label.includes(currentMonthLabel);
                                         return (
                                             <div key={index} className="chart-bar-item">
                                                 <div className="bar-wrapper">
