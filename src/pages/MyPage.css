@@ -466,3 +466,47 @@
     margin-top: auto;
     word-break: keep-all;
 }
+
+/* Redesigned Household Member List Components */
+.member-left-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.member-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 900;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.member-relation-tag.badge-header {
+    background-color: var(--color-primary-dark);
+    color: white;
+}
+
+.member-relation-tag.badge-member {
+    background-color: #E8F5E9;
+    color: var(--color-success);
+}
+
+.member-relation-tag.badge-waiting {
+    background-color: #FFF3E0;
+    color: #E65100;
+}
+
+.bulk-actions-wrap {
+    background-color: #F8FAFC;
+    border-radius: 12px;
+    padding: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}

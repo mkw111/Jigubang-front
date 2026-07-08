@@ -37,6 +37,25 @@ const MyPage: React.FC = () => {
     
     const [residentApproved, setResidentApproved] = useState(false);
 
+    const getAvatarColor = (uuid: string) => {
+        if (!uuid) return 'var(--color-primary)';
+        const colors = [
+            '#3B82F6', // Blue
+            '#10B981', // Emerald
+            '#8B5CF6', // Violet
+            '#F59E0B', // Amber
+            '#EC4899', // Pink
+            '#06B6D4', // Cyan
+            '#6366F1'  // Indigo
+        ];
+        let hash = 0;
+        for (let i = 0; i < uuid.length; i++) {
+            hash = uuid.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash) % colors.length;
+        return colors[index];
+    };
+
     const getAuthHeaders = (additionalHeaders: Record<string, string> = {}): Record<string, string> => {
         const userStr = localStorage.getItem('user');
         const headers: Record<string, string> = { ...additionalHeaders };
@@ -198,6 +217,34 @@ const MyPage: React.FC = () => {
             }
         } catch (err: any) {
             alert('서버 통신 오류: ' + err.message);
+        }
+    };
+
+    const handleApproveAllWaiters = async () => {
+        const waiters = members.filter(m => m.approvedYn === 'N');
+        if (waiters.length === 0) {
+            alert('목록에 대기 구성원이 없습니다.');
+            return;
+        }
+
+        const confirmText = `대기 구성원 ${waiters.length}명을 모두 승인하시겠어요?\n\n상기 회원들을 세대 구성원으로 승인합니다.`;
+        if (!window.confirm(confirmText)) return;
+
+        try {
+            setLoadingMembers(true);
+            await Promise.all(waiters.map(w => 
+                fetch('/api/households/member/approve', {
+                    method: 'POST',
+                    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ memberUuid: w.uuid })
+                })
+            ));
+            alert('대기 구성원을 모두 승인하였습니다. 감사합니다.');
+            fetchMembers();
+        } catch (e: any) {
+            alert('처리 중 오류가 발생했습니다: ' + e.message);
+        } finally {
+            setLoadingMembers(false);
         }
     };
 
@@ -836,19 +883,25 @@ const MyPage: React.FC = () => {
                             ) : (
                                 approvedMembers.map((member: any) => {
                                     const isSelf = member.uuid === user.uuid;
+                                    const avatarText = member.name ? member.name.charAt(0) : '?';
                                     return (
                                         <div key={member.uuid} className="member-list-card">
                                             <div className="member-item-row">
-                                                <div className="member-info-col">
-                                                    <div className="member-name-tag">
-                                                        <span className="member-name-txt">{maskName(member.name, isSelf)}</span>
-                                                        <span className="member-relation-tag">
-                                                            {member.householdsType === 'HEADER' ? '세대대표' : '세대원'}
-                                                        </span>
+                                                <div className="member-left-wrap">
+                                                    <div className="member-avatar" style={{ backgroundColor: getAvatarColor(member.uuid) }}>
+                                                        {avatarText}
                                                     </div>
-                                                    <span className="member-phone-txt">{maskPhone(member.phoneNumber, isSelf)}</span>
+                                                    <div className="member-info-col">
+                                                        <div className="member-name-tag">
+                                                            <span className="member-name-txt">{maskName(member.name, isSelf)}</span>
+                                                            <span className={`member-relation-tag ${member.householdsType === 'HEADER' ? 'badge-header' : 'badge-member'}`}>
+                                                                {member.householdsType === 'HEADER' ? '세대대표' : '세대원'}
+                                                            </span>
+                                                        </div>
+                                                        <span className="member-phone-txt">{maskPhone(member.phoneNumber, isSelf)}</span>
+                                                    </div>
                                                 </div>
-                                                <span className="member-req-date">가입회원</span>
+                                                <span className="member-req-date">{isSelf ? '본인' : '가입회원'}</span>
                                             </div>
                                             
                                             {/* Show action buttons only to representative and for other members */}
@@ -879,46 +932,57 @@ const MyPage: React.FC = () => {
                                         전입 신청 대기자가 없습니다.
                                     </div>
                                 ) : (
-                                    waitingMembers.map((member: any) => (
-                                        <div key={member.uuid} className="member-list-card">
-                                            <div className="member-item-row">
-                                                <div className="member-info-col">
-                                                    <div className="member-name-tag">
-                                                        <span className="member-name-txt">{maskName(member.name, false)}</span>
-                                                        <span className="member-relation-tag" style={{ backgroundColor: '#FFF6E0', color: '#E6A23C' }}>대기중</span>
-                                                    </div>
-                                                    <span className="member-phone-txt">{maskPhone(member.phoneNumber, false)}</span>
-                                                </div>
-                                                <span className="member-req-date">요청됨</span>
+                                    <>
+                                        {isHeader && (
+                                            <div className="bulk-actions-wrap" style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                                                <button className="member-action-btn primary" onClick={handleApproveAllWaiters}>
+                                                    전체 승인 ({waitingMembers.length})
+                                                </button>
+                                                <button className="member-action-btn danger" onClick={handleRejectAllWaiters}>
+                                                    전체 거절 ({waitingMembers.length})
+                                                </button>
                                             </div>
-                                            
-                                            {isHeader && (
-                                                <div className="member-actions-row">
-                                                    <button 
-                                                        className="member-action-btn primary" 
-                                                        onClick={() => handleApproveMember(member)}
-                                                    >
-                                                        구성원 승인
-                                                    </button>
-                                                    <button 
-                                                        className="member-action-btn danger" 
-                                                        onClick={() => handleRejectMember(member)}
-                                                    >
-                                                        거절
-                                                    </button>
+                                        )}
+                                        {waitingMembers.map((member: any) => {
+                                            const avatarText = member.name ? member.name.charAt(0) : '?';
+                                            return (
+                                                <div key={member.uuid} className="member-list-card">
+                                                    <div className="member-item-row">
+                                                        <div className="member-left-wrap">
+                                                            <div className="member-avatar" style={{ backgroundColor: getAvatarColor(member.uuid) }}>
+                                                                {avatarText}
+                                                            </div>
+                                                            <div className="member-info-col">
+                                                                <div className="member-name-tag">
+                                                                    <span className="member-name-txt">{maskName(member.name, false)}</span>
+                                                                    <span className="member-relation-tag badge-waiting">대기중</span>
+                                                                </div>
+                                                                <span className="member-phone-txt">{maskPhone(member.phoneNumber, false)}</span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="member-req-date">요청됨</span>
+                                                    </div>
+                                                    
+                                                    {isHeader && (
+                                                        <div className="member-actions-row">
+                                                            <button 
+                                                                className="member-action-btn primary" 
+                                                                onClick={() => handleApproveMember(member)}
+                                                            >
+                                                                구성원 승인
+                                                            </button>
+                                                            <button 
+                                                                className="member-action-btn danger" 
+                                                                onClick={() => handleRejectMember(member)}
+                                                            >
+                                                                거절
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))
-                                )}
-                                
-                                {isHeader && waitingMembers.length > 0 && (
-                                    <button 
-                                        className="bulk-action-btn"
-                                        onClick={handleRejectAllWaiters}
-                                    >
-                                        모든 대기 구성원을 목록에서 제거하기
-                                    </button>
+                                            );
+                                        })}
+                                    </>
                                 )}
                             </>
                         )}
