@@ -398,3 +398,25 @@
     font-size: 20px;
     color: var(--color-text-light);
 }
+
+/* Pulse animation for active DR alert widget */
+.animated-pulse {
+    animation: alertPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes alertPulse {
+    0% { transform: scale(1); box-shadow: 0 8px 24px rgba(255, 82, 82, 0.25); }
+    50% { transform: scale(1.02); box-shadow: 0 12px 30px rgba(255, 82, 82, 0.45); }
+    100% { transform: scale(1); box-shadow: 0 8px 24px rgba(255, 82, 82, 0.25); }
+}
+
+.live-pulse {
+    display: inline-flex;
+    align-items: center;
+    animation: blinkDot 1.5s infinite steps(2, start);
+}
+
+@keyframes blinkDot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}

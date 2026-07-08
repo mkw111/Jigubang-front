@@ -13,6 +13,7 @@ const HomePage: React.FC = () => {
     const [energySummary, setEnergySummary] = useState<any>({ totalUsage: 0, carbonEmission: 0, treeCount: 0 });
     const [points, setPoints] = useState<any>({ totalPoints: 0, kpxPoints: 0, gyeongnamPoints: 0 });
     const [drCardData, setDrCardData] = useState<any>(null);
+    const [activeIssue, setActiveIssue] = useState<any>(null);
 
     const [memberCount, setMemberCount] = useState<number>(0);
     
@@ -72,6 +73,19 @@ const HomePage: React.FC = () => {
                     setDrCardData(data);
                 }
 
+                // Fetch active DR issue if exists
+                try {
+                    const activeIssueRes = await fetch(`/api/dr/active-issue`, { headers });
+                    if (activeIssueRes.ok && activeIssueRes.status !== 204) {
+                        const data = await activeIssueRes.json();
+                        setActiveIssue(data);
+                    } else {
+                        setActiveIssue(null);
+                    }
+                } catch (e) {
+                    console.error("Failed to load active issue on home", e);
+                }
+
                 // Fetch household and user approval status dynamically from backend
                 if (user.uuid) {
                     const statusRes = await fetch(`/api/users/${user.uuid}/status`, { headers });
@@ -111,11 +125,16 @@ const HomePage: React.FC = () => {
     const handleRequestResident = async () => {
         if (!user.hoSeq) return;
         try {
+            const token = user.token;
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const res = await fetch('/api/households/resident/request', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify({ hoSeq: user.hoSeq })
             });
             if (res.ok) {
@@ -180,6 +199,18 @@ const HomePage: React.FC = () => {
     const availableDrCount = (drCardData?.isPossibleKpxDr ? 1 : 0) + (drCardData?.isPossibleGyeongnamDr ? 1 : 0);
     const participatingDrCount = (drCardData?.isHouseholdsKpxDr ? 1 : 0) + (drCardData?.isHouseholdsGyeongnamDr ? 1 : 0);
 
+    const formatTime = (dateTimeStr: string) => {
+        if (!dateTimeStr) return '';
+        try {
+            const date = new Date(dateTimeStr);
+            const hrs = String(date.getHours()).padStart(2, '0');
+            const mins = String(date.getMinutes()).padStart(2, '0');
+            return `${hrs}:${mins}`;
+        } catch {
+            return '';
+        }
+    };
+
     return (
         <div className="page-container home-wrapper">
             {/* Header Area (Blue Background) */}
@@ -223,6 +254,27 @@ const HomePage: React.FC = () => {
 
             {/* Main Scrollable Content */}
             <main className="app-content home-content-scroll" style={{ marginTop: '-40px' }}>
+                {/* 🚨 실시간 DR 긴급 절전 미션 발령 알림 위젯 */}
+                {activeIssue && (
+                    <div className="card dr-active-alert-card animated-pulse" onClick={() => navigate('/dr-history')} style={{ marginBottom: '16px', background: 'linear-gradient(135deg, #FF5252, #FF7A00)', color: 'white', padding: '16px', borderRadius: '20px', boxShadow: '0 8px 24px rgba(255, 82, 82, 0.25)', border: 'none', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+                        <div className="alert-header" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <span className="live-pulse" style={{ fontSize: '11px', fontWeight: 900, backgroundColor: 'rgba(255, 255, 255, 0.25)', padding: '2px 8px', borderRadius: '20px', letterSpacing: '0.5px' }}>🔴 LIVE</span>
+                            <strong className="alert-title" style={{ fontSize: '15px', fontWeight: 800 }}>{activeIssue.drType} 긴급 절전 미션!</strong>
+                        </div>
+                        <div className="alert-body" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div className="alert-main-text" style={{ fontSize: '13px', lineHeight: 1.4, opacity: 0.95 }}>
+                                지금 가전제품 전원을 끄고 절전에 동참하시면 성공 포인트 <strong>+{activeIssue.successPoint}P</strong>를 지급해 드립니다!
+                            </div>
+                            <div className="alert-time" style={{ fontSize: '11px', opacity: 0.8, marginTop: '4px' }}>
+                                미션 시간: {formatTime(activeIssue.startAt)} ~ {formatTime(activeIssue.endAt)}
+                            </div>
+                        </div>
+                        <div className="alert-footer" style={{ marginTop: '12px', fontSize: '12px', fontWeight: 700, display: 'flex', justifyContent: 'flex-end', opacity: 0.9 }}>
+                            <span>절전 미션 참여 신청하러 가기 ›</span>
+                        </div>
+                    </div>
+                )}
+
                 {/* 1. 우리집 에너지 참여 현황 Card */}
                 <section className="card participation-status-card">
                     <div className="status-title">
