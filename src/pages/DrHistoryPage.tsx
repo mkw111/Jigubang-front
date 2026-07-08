@@ -610,63 +610,82 @@ const DrHistoryPage: React.FC = () => {
                     </div>
                 </div>
             )}
-            {/* 서명 신청 바텀 시트 (Drawer) */}
+            {/* 서명 신청 바텀 시트 (Drawer) - eformsign 전자계약서 솔루션 시뮬레이션 */}
             {isDrawerOpen && (
                 <div className="modal-overlay animated-fade-in" onClick={closeDrawer} style={{ zIndex: 11000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="drawer-content slide-up-drawer" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', borderTopLeftRadius: '30px', borderTopRightRadius: '30px', padding: '24px 24px 40px 24px', backgroundColor: '#FFFFFF', boxShadow: '0 -10px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="drawer-content slide-up-drawer" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', borderTopLeftRadius: '30px', borderTopRightRadius: '30px', padding: '24px 24px 40px 24px', backgroundColor: '#F1F5F9', boxShadow: '0 -10px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '92vh', overflowY: 'auto' }}>
                         
                         {/* Drawer Handle bar */}
-                        <div style={{ width: '40px', height: '4px', backgroundColor: '#E2E8F0', borderRadius: '2px', alignSelf: 'center' }}></div>
+                        <div style={{ width: '40px', height: '4px', backgroundColor: '#CBD5E1', borderRadius: '2px', alignSelf: 'center' }}></div>
 
-                        <div className="drawer-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--color-text-dark)' }}>
-                                {drawerType === 'KPX' ? '국민DR (쉼표) 가입 신청서' : '경남DR 가입 신청서'}
-                            </h3>
-                            <button className="close-modal-btn" onClick={closeDrawer} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--color-text-muted)' }}>&times;</button>
+                        {/* eformsign Solution Header Branding */}
+                        <div className="eformsign-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '10px 16px', borderRadius: '12px', borderLeft: '4px solid #00C292', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 800, color: '#00C292', letterSpacing: '0.5px' }}>eformsign SECURE SIGN</span>
+                                <strong style={{ fontSize: '14px', fontWeight: 900, color: '#1E293B' }}>
+                                    {drawerType === 'KPX' ? '국민DR (쉼표) 절전 가입 신청서' : '경남DR 주민 절전 가입 신청서'}
+                                </strong>
+                            </div>
+                            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 700 }}>v1.2 (지구방)</span>
                         </div>
 
-                        <div className="drawer-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {/* 약관 동의 텍스트 상자 */}
-                            <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', maxHeight: '120px', overflowY: 'auto', fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: '1.6' }}>
-                                <strong>제1조 (목적)</strong><br />
-                                본 약관은 지구방 서비스 내 수요반응(DR) 프로그램 연동 및 가입 시 발생하는 개인정보 제공 및 절전 미션 참여 서약에 관련한 동의 사항을 규정합니다.<br /><br />
-                                <strong>제2조 (개인정보 제3자 제공 동의)</strong><br />
-                                1. 제공받는 자: (주)에너넷, 전력거래소(KPX) 및 해당 지방자치단체<br />
-                                2. 제공 항목: 이름, 연락처, 세대 식별번호(hoSeq), 주소<br />
-                                3. 제공 목적: AMI 원격검침 검침값 연계 및 감축량 정산 포인트 지급 처리<br /><br />
-                                <strong>제3조 (절전 미션 성실 참여 서약)</strong><br />
-                                가입자는 발령 시 문자/앱 푸시를 통해 발송되는 절전 알림에 따라 자발적으로 가전 차단 및 소등 미션에 성실히 응할 것을 서약합니다.
+                        {/* eformsign Paper Container (계약서 용지 느낌) */}
+                        <div className="eformsign-paper" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            
+                            {/* 1. 신청자 기본 정보 서식 */}
+                            <div>
+                                <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: 800, color: '#475569', borderBottom: '1px solid #E2E8F0', paddingBottom: '4px' }}>1. 신청인 인적사항</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '6px 12px', fontSize: '12px', color: '#1E293B' }}>
+                                    <span style={{ color: '#64748B', fontWeight: 700 }}>신청 단지</span>
+                                    <span style={{ fontWeight: 800 }}>{user.aptName || '단지 정보 없음'}</span>
+                                    
+                                    <span style={{ color: '#64748B', fontWeight: 700 }}>세대 정보</span>
+                                    <span style={{ fontWeight: 800 }}>{user.dong ? `${user.dong}동 ${user.ho}호` : '동/호 정보 없음'}</span>
+                                    
+                                    <span style={{ color: '#64748B', fontWeight: 700 }}>성 명</span>
+                                    <span style={{ fontWeight: 800 }}>{user.name || '미인증 회원'}</span>
+                                    
+                                    <span style={{ color: '#64748B', fontWeight: 700 }}>연락처</span>
+                                    <span style={{ fontWeight: 800 }}>{user.phoneNumber || '전화번호 없음'}</span>
+                                </div>
                             </div>
 
-                            {/* 동의 체크박스 */}
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: 'var(--color-text-dark)' }}>
-                                <input 
-                                    type="checkbox" 
-                                    checked={agreedTerms} 
-                                    onChange={(e) => setAgreedTerms(e.target.checked)}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                />
-                                [필수] 개인정보 제3자 제공 및 약관에 동의합니다
-                            </label>
+                            {/* 2. 약관 및 서약 서식 */}
+                            <div>
+                                <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: 800, color: '#475569', borderBottom: '1px solid #E2E8F0', paddingBottom: '4px' }}>2. 개인정보 및 위임 동의</h4>
+                                <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #F1F5F9', borderRadius: '10px', padding: '10px', maxHeight: '90px', overflowY: 'auto', fontSize: '10px', color: '#64748B', lineHeight: '1.5' }}>
+                                    <strong>[개인정보 제공 동의서약]</strong><br />
+                                    본인은 전력거래소(KPX) 및 해당 지자체 수요반응 서비스 참여를 위해 이름, 연락처, AMI 검침값 및 세대 고유식별코드(hoSeq) 등의 정보를 제3자(에너넷 및 지자체 시스템)에 위임 제공하는 것에 동의합니다.
+                                </div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 800, color: '#0F172A', marginTop: '8px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={agreedTerms} 
+                                        onChange={(e) => setAgreedTerms(e.target.checked)}
+                                        style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                                    />
+                                    위 약관 동의 및 위임 사항에 서명합니다. (필수)
+                                </label>
+                            </div>
 
-                            {/* 전자 서명 영역 */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-text-dark)' }}>신청 서명란</span>
+                            {/* 3. 전자 서명 서식 */}
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 6px 0', borderBottom: '1px solid #E2E8F0', paddingBottom: '4px' }}>
+                                    <h4 style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#475569' }}>3. 전자 서명 (인)</h4>
                                     <button 
                                         onClick={clearSignature}
-                                        style={{ border: 'none', backgroundColor: '#F1F5F9', color: '#64748B', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                                        style={{ border: 'none', backgroundColor: '#F1F5F9', color: '#475569', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}
                                     >
-                                        초기화 (지우기)
+                                        서명 지우기
                                     </button>
                                 </div>
                                 
-                                {/* 캔버스 서명 패드 */}
-                                <div style={{ border: '2px dashed #CBD5E1', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#F8FAFC', position: 'relative', height: '140px' }}>
+                                {/* eformsign Signature Pad Box */}
+                                <div style={{ border: '1.5px dashed #00C292', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#FAFAFA', position: 'relative', height: '110px' }}>
                                     <canvas 
                                         ref={canvasRef}
-                                        width={370}
-                                        height={140}
+                                        width={330}
+                                        height={110}
                                         onMouseDown={startDrawing}
                                         onMouseMove={draw}
                                         onMouseUp={stopDrawing}
@@ -677,29 +696,29 @@ const DrHistoryPage: React.FC = () => {
                                         style={{ width: '100%', height: '100%', cursor: 'crosshair', display: 'block' }}
                                     />
                                     {!hasSigned && (
-                                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#94A3B8', fontSize: '12px', pointerEvents: 'none', textAlign: 'center' }}>
-                                            여기에 마우스 또는 터치로 서명해주세요
+                                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#94A3B8', fontSize: '11px', pointerEvents: 'none', textAlign: 'center', fontWeight: 500 }}>
+                                            [서명란] 마우스/터치로 서명해주세요
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Drawer Actions */}
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                        {/* eformsign Footer Actions */}
+                        <div style={{ display: 'flex', gap: '10px' }}>
                             <button 
                                 className="modal-action-btn secondary" 
                                 onClick={closeDrawer}
-                                style={{ flex: 1, padding: '14px', borderRadius: '16px', fontSize: '14px', fontWeight: 700, border: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', color: 'var(--color-text-dark)', cursor: 'pointer' }}
+                                style={{ flex: 1, padding: '12px', borderRadius: '14px', fontSize: '13px', fontWeight: 700, border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', cursor: 'pointer' }}
                             >
-                                취소
+                                신청 취소
                             </button>
                             <button 
                                 className="modal-action-btn primary" 
                                 onClick={submitJoinDr}
-                                style={{ flex: 2, padding: '14px', borderRadius: '16px', fontSize: '14px', fontWeight: 700, border: 'none', backgroundColor: '#3B82F6', color: 'white', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' }}
+                                style={{ flex: 2, padding: '12px', borderRadius: '14px', fontSize: '13px', fontWeight: 800, border: 'none', backgroundColor: '#00C292', color: 'white', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0, 194, 146, 0.3)' }}
                             >
-                                서약 및 신청 완료
+                                이폼사인 서류 제출
                             </button>
                         </div>
 
