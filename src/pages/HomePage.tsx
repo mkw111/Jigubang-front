@@ -175,7 +175,7 @@ const HomePage: React.FC = () => {
         return Math.floor((subtotal + vat + fund) / 10) * 10;
     };
 
-    const totalUsage = energySummary?.totalUsage || 212;
+    const totalUsage = energySummary?.totalUsage || -1;
 
     const currentUsage = energyMode === 'billing' ? Math.round(totalUsage) : Math.round(totalUsage * 0.7);
     const currentCost = calculateElectricBill(currentUsage);
@@ -216,8 +216,17 @@ const HomePage: React.FC = () => {
             {/* Header Area (Blue Background) */}
             <div className="home-gradient-header">
                 <header className="app-header home-header-transparent">
-                    <div className="header-address">
-                        <span>🏠 {user.aptName || '지구방 아파트'} {user.dong ? `${user.dong}동 ${user.ho}호` : ''}</span>
+                    <div className="header-address" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <img 
+                            src="/image/지구방BI(화이트).png" 
+                            alt="지구방 로고" 
+                            style={{ height: '16px', width: 'auto', objectFit: 'contain' }}
+                            onError={(e) => {
+                                // Fallback to whiteBI
+                                (e.target as HTMLImageElement).src = '/image/image00(화이트BI).png';
+                            }}
+                        />
+                        <span>{user.aptName || '데이터 로드 실패'} {user.dong ? `${user.dong}동 ${user.ho}호` : ''}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <span className="notification-bell" onClick={() => alert('알림 목록은 준비 중입니다.')}>🔔</span>
@@ -232,22 +241,33 @@ const HomePage: React.FC = () => {
                     <div className="welcome-text-container">
                         {isAuthenticated ? (
                             <>
-                                <strong>{user.name || '사용자'}님</strong>,<br />
+                                <strong>{user.name || '로그인 실패'}님</strong>,<br />
                                 오늘도 함께 <span className="highlight-yellow">에너지</span><br />
                                 <span className="highlight-yellow">절약</span>을 해 볼까요?
                             </>
                         ) : (
                             <>
-                                <strong>{user.name || '사용자'}님</strong>,<br />
+                                <strong>{user.name || '로그인 실패'}님</strong>,<br />
                                 관리사무소 <span className="highlight-yellow">실거주</span><br />
                                 <span className="highlight-yellow">인증</span>이 필요해요.
                             </>
                         )}
                     </div>
-                    {/* Cute CSS draw mascot cat simulation */}
-                    <div className="mascot-cat-illu">
-                        <div className="cat-clouds">☁️</div>
-                        <div className="cat-character">🐱⛳</div>
+                    {/* Premium 3D Mascot visual */}
+                    <div className="mascot-cat-illu" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                        <img 
+                            src="/image/지구방3D_애니.gif" 
+                            alt="지구방 마스코트" 
+                            style={{ 
+                                width: '92px', 
+                                height: '92px', 
+                                objectFit: 'contain',
+                                filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.1))'
+                            }} 
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/image/지구방3D.png';
+                            }}
+                        />
                     </div>
                 </div>
             </div>
@@ -402,19 +422,19 @@ const HomePage: React.FC = () => {
                                 <div className="usage-summary" style={{ marginBottom: '24px' }}>
                                     <div className="points-title" style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 600 }}>통합 포인트</div>
                                     <div className="usage-main">
-                                        <span className="number-font main-value">{(points.totalPoints || 15600).toLocaleString()}</span>
+                                        <span className="number-font main-value">{(points.totalPoints || -1).toLocaleString()}</span>
                                         <span className="unit">Point</span>
                                         <span className="detail-arrow">›</span>
                                     </div>
                                     <div className="cost-main">
-                                        <span className="cost-value">누적 적립 {((points.totalPoints || 15600) + 12000).toLocaleString()}P · 누적 사용 12,000P</span>
+                                        <span className="cost-value">누적 적립 {((points.totalPoints || -1) + 12000).toLocaleString()}P · 누적 사용 12,000P</span>
                                     </div>
                                 </div>
 
                                 <div className="dr-stats-row">
                                     <div className="stat-col">
                                         <div className="stat-label">KPX 포인트</div>
-                                        <div className="stat-val number-font">{(points.kpxPoints || 10000).toLocaleString()} P</div>
+                                        <div className="stat-val number-font">{(points.kpxPoints || -1).toLocaleString()} P</div>
                                     </div>
                                     <div className="stat-col">
                                         <div className="stat-label">경남 포인트</div>

@@ -20,6 +20,14 @@ const DrHistoryPage: React.FC = () => {
     const [selectedMission, setSelectedMission] = useState<DRChallenge | null>(null);
     const [showGuide, setShowGuide] = useState<boolean>(false);
 
+    // Signature Drawer States & Refs
+    const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+    const [drawerType, setDrawerType] = useState<'KPX' | 'GYEONGNAM' | null>(null);
+    const [agreedTerms, setAgreedTerms] = useState<boolean>(false);
+    const [hasSigned, setHasSigned] = useState<boolean>(false);
+    const [isDrawing, setIsDrawing] = useState<boolean>(false);
+    const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
     const [user, setUser] = useState<any>({});
     const [activeIssue, setActiveIssue] = useState<any>(null);
     const [drSummary, setDrSummary] = useState<any>(null);
@@ -81,10 +89,99 @@ const DrHistoryPage: React.FC = () => {
         fetchData();
     }, [user.hoSeq, user.token]);
 
-    const handleJoinDrProgram = async (challenge: DRChallenge) => {
-        let drProgramType = 'KPX';
-        if (challenge.type.includes('경남') || challenge.type.includes('GYEONGNAM') || challenge.type.includes('경남 DR')) {
+    const handleJoinDrProgram = (challenge: any) => {
+        let drProgramType: 'KPX' | 'GYEONGNAM' = 'KPX';
+        if (challenge.type && (challenge.type.includes('경남') || challenge.type.includes('GYEONGNAM') || challenge.type.includes('경남 DR'))) {
             drProgramType = 'GYEONGNAM';
+        } else if (challenge.title && (challenge.title.includes('경남') || challenge.title.includes('GYEONGNAM'))) {
+            drProgramType = 'GYEONGNAM';
+        }
+
+        setSelectedMission(null);
+        setDrawerType(drProgramType);
+        setIsDrawerOpen(true);
+        setAgreedTerms(false);
+        setHasSigned(false);
+    };
+
+    // Signature Drawer Controls & Canvas drawing handlers
+    const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.strokeStyle = '#1E293B';
+        ctx.lineWidth = 3.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        let clientX, clientY;
+        if ('touches' in e) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        ctx.beginPath();
+        ctx.moveTo(clientX - rect.left, clientY - rect.top);
+        setIsDrawing(true);
+    };
+
+    const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+        if (!isDrawing) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let clientX, clientY;
+        if ('touches' in e) {
+            if (e.cancelable) e.preventDefault();
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineTo(clientX - rect.left, clientY - rect.top);
+        ctx.stroke();
+        setHasSigned(true);
+    };
+
+    const stopDrawing = () => {
+        setIsDrawing(false);
+    };
+
+    const clearSignature = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        setHasSigned(false);
+    };
+
+    const closeDrawer = () => {
+        setIsDrawerOpen(false);
+        setDrawerType(null);
+        setAgreedTerms(false);
+        setHasSigned(false);
+    };
+
+    const submitJoinDr = async () => {
+        if (!agreedTerms) {
+            alert('개인정보 수집 및 이용약관에 동의하셔야 신청 가능합니다.');
+            return;
+        }
+        if (!hasSigned) {
+            alert('서명란에 서명을 입력해주세요.');
+            return;
         }
 
         try {
@@ -96,26 +193,26 @@ const DrHistoryPage: React.FC = () => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`/api/dr/programs/${drProgramType}/join`, {
+            const response = await fetch(`/api/dr/programs/${drawerType}/join`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
                     apiKey: 'jigubang-web-api-key',
-                    documentId: `doc-${challenge.id}`
+                    documentId: `doc-${Date.now()}`
                 })
             });
 
             if (response.ok) {
-                alert(`${challenge.type} 프로그램 가입 신청이 성공적으로 완료되었습니다!`);
-                setSelectedMission(null);
-                // Refresh cards status
+                alert(`${drawerType === 'KPX' ? '국민DR (쉼표)' : '경남DR'} 프로그램 신청서 제출이 완료되었습니다!`);
+                closeDrawer();
+                // Refresh status
                 const cardsRes = await fetch(`/api/dr/cards`, { headers });
                 if (cardsRes.ok) {
                     const data = await cardsRes.json();
                     setDrCards(data);
                 }
             } else {
-                alert('가입 신청 실패');
+                alert('가입 신청에 실패했습니다.');
             }
         } catch (err: any) {
             alert('서버 통신 오류: ' + err.message);
@@ -510,6 +607,102 @@ const DrHistoryPage: React.FC = () => {
                                 <button className="modal-action-btn secondary" onClick={() => setSelectedMission(null)} style={{ flex: 1, padding: '12px', borderRadius: '14px', fontSize: '14px', fontWeight: 700, border: '1px solid #F0F0F0', backgroundColor: '#FFFFFF', color: 'var(--color-text-dark)', cursor: 'pointer' }}>닫기</button>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* 서명 신청 바텀 시트 (Drawer) */}
+            {isDrawerOpen && (
+                <div className="modal-overlay animated-fade-in" onClick={closeDrawer} style={{ zIndex: 11000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="drawer-content slide-up-drawer" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', borderTopLeftRadius: '30px', borderTopRightRadius: '30px', padding: '24px 24px 40px 24px', backgroundColor: '#FFFFFF', boxShadow: '0 -10px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        
+                        {/* Drawer Handle bar */}
+                        <div style={{ width: '40px', height: '4px', backgroundColor: '#E2E8F0', borderRadius: '2px', alignSelf: 'center' }}></div>
+
+                        <div className="drawer-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--color-text-dark)' }}>
+                                {drawerType === 'KPX' ? '국민DR (쉼표) 가입 신청서' : '경남DR 가입 신청서'}
+                            </h3>
+                            <button className="close-modal-btn" onClick={closeDrawer} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--color-text-muted)' }}>&times;</button>
+                        </div>
+
+                        <div className="drawer-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {/* 약관 동의 텍스트 상자 */}
+                            <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', maxHeight: '120px', overflowY: 'auto', fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: '1.6' }}>
+                                <strong>제1조 (목적)</strong><br />
+                                본 약관은 지구방 서비스 내 수요반응(DR) 프로그램 연동 및 가입 시 발생하는 개인정보 제공 및 절전 미션 참여 서약에 관련한 동의 사항을 규정합니다.<br /><br />
+                                <strong>제2조 (개인정보 제3자 제공 동의)</strong><br />
+                                1. 제공받는 자: (주)에너넷, 전력거래소(KPX) 및 해당 지방자치단체<br />
+                                2. 제공 항목: 이름, 연락처, 세대 식별번호(hoSeq), 주소<br />
+                                3. 제공 목적: AMI 원격검침 검침값 연계 및 감축량 정산 포인트 지급 처리<br /><br />
+                                <strong>제3조 (절전 미션 성실 참여 서약)</strong><br />
+                                가입자는 발령 시 문자/앱 푸시를 통해 발송되는 절전 알림에 따라 자발적으로 가전 차단 및 소등 미션에 성실히 응할 것을 서약합니다.
+                            </div>
+
+                            {/* 동의 체크박스 */}
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: 'var(--color-text-dark)' }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={agreedTerms} 
+                                    onChange={(e) => setAgreedTerms(e.target.checked)}
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                />
+                                [필수] 개인정보 제3자 제공 및 약관에 동의합니다
+                            </label>
+
+                            {/* 전자 서명 영역 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-text-dark)' }}>신청 서명란</span>
+                                    <button 
+                                        onClick={clearSignature}
+                                        style={{ border: 'none', backgroundColor: '#F1F5F9', color: '#64748B', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                                    >
+                                        초기화 (지우기)
+                                    </button>
+                                </div>
+                                
+                                {/* 캔버스 서명 패드 */}
+                                <div style={{ border: '2px dashed #CBD5E1', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#F8FAFC', position: 'relative', height: '140px' }}>
+                                    <canvas 
+                                        ref={canvasRef}
+                                        width={370}
+                                        height={140}
+                                        onMouseDown={startDrawing}
+                                        onMouseMove={draw}
+                                        onMouseUp={stopDrawing}
+                                        onMouseLeave={stopDrawing}
+                                        onTouchStart={startDrawing}
+                                        onTouchMove={draw}
+                                        onTouchEnd={stopDrawing}
+                                        style={{ width: '100%', height: '100%', cursor: 'crosshair', display: 'block' }}
+                                    />
+                                    {!hasSigned && (
+                                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#94A3B8', fontSize: '12px', pointerEvents: 'none', textAlign: 'center' }}>
+                                            여기에 마우스 또는 터치로 서명해주세요
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Drawer Actions */}
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                            <button 
+                                className="modal-action-btn secondary" 
+                                onClick={closeDrawer}
+                                style={{ flex: 1, padding: '14px', borderRadius: '16px', fontSize: '14px', fontWeight: 700, border: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', color: 'var(--color-text-dark)', cursor: 'pointer' }}
+                            >
+                                취소
+                            </button>
+                            <button 
+                                className="modal-action-btn primary" 
+                                onClick={submitJoinDr}
+                                style={{ flex: 2, padding: '14px', borderRadius: '16px', fontSize: '14px', fontWeight: 700, border: 'none', backgroundColor: '#3B82F6', color: 'white', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' }}
+                            >
+                                서약 및 신청 완료
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             )}
