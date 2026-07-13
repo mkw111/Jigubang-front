@@ -432,7 +432,7 @@ const MyPage: React.FC = () => {
                                     body: JSON.stringify({
                                         token: fcmToken,
                                         title: '지구방 테스트 푸시',
-                                        message: '김화경님, 지구방 전력 차단 미션이 발령되었습니다!'
+                                        message: `${user.name || '김화경'}님, 테스트 푸시 발송에 성공하였습니다!`
                                     })
                                 });
                                 const result = await response.json();
