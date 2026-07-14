@@ -8,8 +8,8 @@ const LandingPage: React.FC = () => {
     return (
         <div className="page-container landing-wrapper">
             <div className="logo-section">
-                <div className="logo-glow"></div>
-                <img src="/logo192.png" alt="Jigubang Logo" className="logo-img" />
+                <div className="logo-glow" style={{ width: '160px', height: '160px' }}></div>
+                <img src="/images/jigubang_3d_ani.gif" alt="Jigubang Logo" className="logo-img" style={{ width: '130px', height: '130px', objectFit: 'contain', zIndex: 2, marginBottom: '20px' }} />
                 <h1 className="main-title">지구방</h1>
                 <p className="sub-title">지구를 구하는 방법</p>
             </div>

@@ -8,6 +8,13 @@ const HomePage: React.FC = () => {
     const [user, setUser] = useState<any>({});
     const [activeCard, setActiveCard] = useState<'energy' | 'dr'>('energy');
     const [energyMode, setEnergyMode] = useState<'billing' | 'monthly'>('billing'); // 'billing' (검침일) or 'monthly' (당월)
+    const [showAuthModal, setShowAuthModal] = useState(false);
+
+    const getOfficePhone = () => {
+        if (user.aptName?.includes('A단지')) return '02-123-4567';
+        if (user.aptName?.includes('B단지')) return '051-987-6543';
+        return '031-4760-1112'; // 기본 숲속마을 벨라시온 관리소 번호
+    };
     
     // API states
     const [energySummary, setEnergySummary] = useState<any>({ totalUsage: 0, carbonEmission: 0, treeCount: 0 });
@@ -411,7 +418,7 @@ const HomePage: React.FC = () => {
                                 {/* Mask Lock Overlay for Unauthorized State */}
                                 {!isAuthenticated && (
                                     <div className="unauth-card-mask">
-                                        <div className="lock-icon">🔒</div>
+                                        <img src="/images/jigubang_3d.png" alt="Lock Icon" style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '12px', filter: 'grayscale(30%)' }} />
                                         <p className="lock-text">실거주 인증 후 에너지 데이터<br />확인이 가능합니다.</p>
                                         <button className="auth-btn" onClick={handleRequestResident}>
                                             실거주 인증하기
@@ -510,6 +517,91 @@ const HomePage: React.FC = () => {
 
 
             </main>
+
+            {/* 실거주 인증 요청 모달 팝업 */}
+            {showAuthModal && (
+                <div className="custom-modal-overlay" style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2000,
+                    padding: '24px'
+                }}>
+                    <div className="custom-modal-content" style={{
+                        backgroundColor: 'white',
+                        borderRadius: '24px',
+                        width: '100%',
+                        maxWidth: '320px',
+                        overflow: 'hidden',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+                    }}>
+                        <div style={{ padding: '24px 20px 20px 20px', textAlign: 'center' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#2f3542', marginBottom: '16px', marginTop: 0 }}>
+                                실거주 인증을 요청 하시겠어요?
+                            </h3>
+                            
+                            <div style={{
+                                backgroundColor: '#f1f3f5',
+                                borderRadius: '16px',
+                                padding: '16px',
+                                marginBottom: '16px',
+                                border: '1px solid #e9ecef'
+                            }}>
+                                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#747d8c', display: 'block', marginBottom: '4px' }}>
+                                    관리사무소
+                                </span>
+                                <span style={{ fontSize: '18px', fontWeight: '800', color: '#00a8ff', letterSpacing: '0.5px' }}>
+                                    {getOfficePhone()}
+                                </span>
+                                
+                                <p style={{ fontSize: '11px', color: '#57606f', marginTop: '10px', lineHeight: 1.5, marginBottom: 0 }}>
+                                    실거주 인증은 '입주민 명부' 대조가 필요해<br />
+                                    아파트 관리사무소에서 진행됩니다.
+                                </p>
+                            </div>
+        
+                            <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#ff4757', lineHeight: 1.5, margin: 0 }}>
+                                실거주 미인증 상태에서는<br />
+                                에너지 인사이트 정보 및 DR포인트 사용이 제한됩니다.
+                            </p>
+                        </div>
+        
+                        <div style={{ display: 'flex', borderTop: '1px solid #e9ecef', height: '48px' }}>
+                            <button onClick={() => setShowAuthModal(false)} style={{
+                                flex: 1,
+                                border: 'none',
+                                background: '#f1f3f5',
+                                color: '#57606f',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                            }}>
+                                취소
+                            </button>
+                            <button onClick={() => {
+                                setShowAuthModal(false);
+                                window.location.href = 'tel:' + getOfficePhone();
+                            }} style={{
+                                flex: 1,
+                                border: 'none',
+                                background: '#00a8ff',
+                                color: 'white',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                            }}>
+                                통화하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <BottomNav />
         </div>

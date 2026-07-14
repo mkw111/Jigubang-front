@@ -127,7 +127,7 @@ const RankingPage: React.FC = () => {
                 {/* Intro summary card */}
                 <div className="ranking-welcome-card">
                     <div className="ranking-top-row">
-                        <span className="trophy-icon">🏆</span>
+                        <img src="/images/char_03.png" alt="Trophy Character" style={{ width: '48px', height: '48px', objectFit: 'contain', marginRight: '12px' }} />
                         <div className="text-col">
                             <div className="main-greeting">전국 절전킹은 누구?</div>
                             <div className="sub-desc">우리집은 몇 위 인지 알아볼까요?</div>

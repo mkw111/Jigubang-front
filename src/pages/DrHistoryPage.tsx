@@ -438,6 +438,7 @@ const DrHistoryPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                    <img src="/images/char_02.png" alt="Mascot" style={{ position: 'absolute', right: '16px', bottom: '-10px', width: '75px', height: '75px', objectFit: 'contain', zIndex: 1 }} />
                 </div>
 
                 {/* Cumulative Stats Dashboard */}

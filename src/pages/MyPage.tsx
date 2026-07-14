@@ -326,6 +326,26 @@ const MyPage: React.FC = () => {
         navigate('/login');
     };
 
+    const handleWithdraw = async () => {
+        const confirmText = `지구방에서 탈퇴 하시겠어요?\n\n탈퇴 신청 후 30일 이내에 로그인하면 언제든지 탈퇴를 취소하고 계정을 복구할 수 있습니다.\n\n30일 이후에는 회원 정보가 완전히 파기됩니다.`;
+        if (!window.confirm(confirmText)) return;
+
+        try {
+            const response = await fetch(`/api/users/withdraw?uuid=${user.uuid}`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                alert('회원 탈퇴 신청이 완료되었습니다.\n30일간 탈퇴유예 상태로 전환되며, 로그아웃 처리됩니다.');
+                localStorage.removeItem('user');
+                navigate('/login');
+            } else {
+                alert('탈퇴 처리 중 실패가 발생했습니다.');
+            }
+        } catch (e: any) {
+            alert('서버 통신 오류: ' + e.message);
+        }
+    };
+
     const maskName = (name: string, isSelf: boolean) => {
         if (isSelf) return `${name} (나)`;
         if (!name) return '';
@@ -514,7 +534,7 @@ const MyPage: React.FC = () => {
                                     body: JSON.stringify({
                                         token: fcmToken,
                                         title: '지구방 테스트 푸시',
-                                        message: '김화경님, 지구방 전력 차단 미션이 발령되었습니다!'
+                                        message: `${user.name || '김화경'}님, 테스트 푸시 발송에 성공하였습니다!`
                                     })
                                 });
                                 const result = await response.json();
@@ -539,10 +559,15 @@ const MyPage: React.FC = () => {
                     <p className="version-number number-font">Version 1.2.0</p>
                 </div>
 
-                {/* Logout Button */}
-                <button className="logout-action-btn" onClick={handleLogout}>
-                    로그아웃
-                </button>
+                {/* Logout & Withdrawal Buttons */}
+                <div style={{ display: 'flex', gap: '12px', marginTop: '20px', marginBottom: '20px' }}>
+                    <button className="logout-action-btn" onClick={handleLogout} style={{ flex: 1, margin: 0 }}>
+                        로그아웃
+                    </button>
+                    <button className="logout-action-btn" onClick={handleWithdraw} style={{ flex: 1, margin: 0, backgroundColor: '#ff4757', color: 'white', border: 'none' }}>
+                        회원 탈퇴
+                    </button>
+                </div>
             </main>
 
             <BottomNav />
