@@ -343,7 +343,7 @@ const DrHistoryPage: React.FC = () => {
                         </div>
                     </div>
                     <img 
-                        src="/image/지구방3D_애니.gif" 
+                        src="/image/jigubang_3d_ani.gif" 
                         alt="지구방 3D" 
                         style={{ 
                             width: '84px', 
@@ -353,7 +353,7 @@ const DrHistoryPage: React.FC = () => {
                             transform: 'translateY(4px)'
                         }} 
                         onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/image/지구방3D.png';
+                            (e.target as HTMLImageElement).src = '/image/jigubang_3d.png';
                         }}
                     />
                 </div>
@@ -538,7 +538,7 @@ const DrHistoryPage: React.FC = () => {
                         </div>
                         <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', paddingRight: '4px' }}>
                             <img 
-                                src="/image/DR참여방법.png" 
+                                src="/image/dr_guide_method.png" 
                                 alt="DR 참여 방법 가이드" 
                                 style={{ width: '100%', borderRadius: '16px', objectFit: 'contain', border: '1px solid #F8FAFC' }} 
                             />

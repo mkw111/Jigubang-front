@@ -17,14 +17,46 @@ const HomePage: React.FC = () => {
 
     const [memberCount, setMemberCount] = useState<number>(0);
     
-    // Load user state
+    // Load user state & sync status once on mount
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         if (!userStr) {
             navigate('/login');
             return;
         }
-        setUser(JSON.parse(userStr));
+        const parsedUser = JSON.parse(userStr);
+        setUser(parsedUser);
+
+        // Sync status only once on mount to prevent infinite render loops
+        if (parsedUser.uuid) {
+            const token = parsedUser.token;
+            const headers: Record<string, string> = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            fetch(`/api/users/${parsedUser.uuid}/status`, { headers })
+                .then(res => {
+                    if (res.ok) {
+                        return res.json();
+                    }
+                    throw new Error("status fetch failed");
+                })
+                .then(statusData => {
+                    if (statusData) {
+                        const approved = statusData.approved;
+                        if (parsedUser.isAuthenticated !== approved || parsedUser.householdsType !== statusData.householdsType) {
+                            const updatedUser = { 
+                                ...parsedUser, 
+                                isAuthenticated: approved,
+                                householdsType: statusData.householdsType
+                            };
+                            setUser(updatedUser);
+                            localStorage.setItem('user', JSON.stringify(updatedUser));
+                        }
+                    }
+                })
+                .catch(err => console.warn("Failed to sync user status on mount", err));
+        }
     }, [navigate]);
 
     // Fetch dashboard data
@@ -86,27 +118,6 @@ const HomePage: React.FC = () => {
                     console.error("Failed to load active issue on home", e);
                 }
 
-                // Fetch household and user approval status dynamically from backend
-                if (user.uuid) {
-                    const statusRes = await fetch(`/api/users/${user.uuid}/status`, { headers });
-                    if (statusRes.ok) {
-                        const statusData = await statusRes.json();
-                        const approved = statusData.approved;
-                        const userStr = localStorage.getItem('user');
-                        if (userStr) {
-                            const currentUser = JSON.parse(userStr);
-                            if (currentUser && (currentUser.isAuthenticated !== approved || currentUser.householdsType !== statusData.householdsType)) {
-                                const updatedUser = { 
-                                    ...currentUser, 
-                                    isAuthenticated: approved,
-                                    householdsType: statusData.householdsType
-                                };
-                                setUser(updatedUser);
-                                localStorage.setItem('user', JSON.stringify(updatedUser));
-                            }
-                        }
-                    }
-                }
             } catch (e) {
                 console.error("Failed to load dashboard data from backend", e);
             }
@@ -218,12 +229,12 @@ const HomePage: React.FC = () => {
                 <header className="app-header home-header-transparent">
                     <div className="header-address" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <img 
-                            src="/image/지구방BI(화이트).png" 
+                            src="/image/jigubang_bi_white.png" 
                             alt="지구방 로고" 
                             style={{ height: '16px', width: 'auto', objectFit: 'contain' }}
                             onError={(e) => {
                                 // Fallback to whiteBI
-                                (e.target as HTMLImageElement).src = '/image/image00(화이트BI).png';
+                                (e.target as HTMLImageElement).src = '/image/jigubang_bi_white_fallback.png';
                             }}
                         />
                         <span>{user.aptName || '데이터 로드 실패'} {user.dong ? `${user.dong}동 ${user.ho}호` : ''}</span>
@@ -256,7 +267,7 @@ const HomePage: React.FC = () => {
                     {/* Premium 3D Mascot visual */}
                     <div className="mascot-cat-illu" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                         <img 
-                            src="/image/지구방3D_애니.gif" 
+                            src="/image/jigubang_3d_ani.gif" 
                             alt="지구방 마스코트" 
                             style={{ 
                                 width: '92px', 
@@ -265,7 +276,7 @@ const HomePage: React.FC = () => {
                                 filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.1))'
                             }} 
                             onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/image/지구방3D.png';
+                                (e.target as HTMLImageElement).src = '/image/jigubang_3d.png';
                             }}
                         />
                     </div>

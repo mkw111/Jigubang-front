@@ -8,32 +8,32 @@ const BottomNav: React.FC = () => {
     const menuItems = [
         { 
             name: '홈', 
-            activeIcon: '/image/[내비] 홈A.png', 
-            inactiveIcon: '/image/[내비] 홈B.png', 
+            activeIcon: '/image/nav_home_active.png', 
+            inactiveIcon: '/image/nav_home_inactive.png', 
             path: '/home' 
         },
         { 
             name: '인사이트', 
-            activeIcon: '/image/[내비] 인사이트A.png', 
-            inactiveIcon: '/image/[내비] 인사이트B.png', 
+            activeIcon: '/image/nav_insight_active.png', 
+            inactiveIcon: '/image/nav_insight_inactive.png', 
             path: '/energy-detail' 
         },
         { 
             name: '수요반응', 
-            activeIcon: '/image/[내비] DRA.png', 
-            inactiveIcon: '/image/[내비] DRB.png', 
+            activeIcon: '/image/nav_dr_active.png', 
+            inactiveIcon: '/image/nav_dr_inactive.png', 
             path: '/dr-history' 
         },
         { 
             name: '에너지 랭킹', 
-            activeIcon: '/image/[내비] 랭킹A.png', 
-            inactiveIcon: '/image/[내비] 랭킹B.png', 
+            activeIcon: '/image/nav_ranking_active.png', 
+            inactiveIcon: '/image/nav_ranking_inactive.png', 
             path: '/ranking' 
         },
         { 
             name: '환경설정', 
-            activeIcon: '/image/[내비] 환경설정A.png', 
-            inactiveIcon: '/image/[내비] 환경설정B.png', 
+            activeIcon: '/image/nav_setting_active.png', 
+            inactiveIcon: '/image/nav_setting_inactive.png', 
             path: '/mypage' 
         }
     ];

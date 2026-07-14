@@ -121,7 +121,7 @@ const EnergyDetailPage: React.FC = () => {
         ] : []);
 
     // Find peak hour
-    const peakHour = dailyData.length > 0 ? dailyData.reduce((max, curr) => curr.value > max.value ? curr : max, dailyData[0]) : null;
+    const peakHour = dailyData.length > 0 ? dailyData.reduce((max: any, curr: any) => curr.value > max.value ? curr : max, dailyData[0]) : null;
 
     // Map monthly data from backend or fallback if unavailable
     const monthlyData = energySummary?.monthlyUsages && energySummary.monthlyUsages.length > 0
@@ -211,8 +211,8 @@ const EnergyDetailPage: React.FC = () => {
                                 </div>
                                 
                                 <div className="bar-chart-container">
-                                    {dailyData.map((d, index) => {
-                                        const maxVal = Math.max(...dailyData.map(item => item.value));
+                                    {dailyData.map((d: any, index: number) => {
+                                        const maxVal = Math.max(...dailyData.map((item: any) => item.value));
                                         const pct = maxVal > 0 ? (d.value / maxVal) * 100 : 0;
                                         return (
                                             <div key={index} className="chart-bar-item">
@@ -287,8 +287,8 @@ const EnergyDetailPage: React.FC = () => {
                                 </div>
 
                                 <div className="bar-chart-container">
-                                    {monthlyData.map((d, index) => {
-                                        const maxVal = Math.max(...monthlyData.map(item => item.value));
+                                    {monthlyData.map((d: any, index: number) => {
+                                        const maxVal = Math.max(...monthlyData.map((item: any) => item.value));
                                         const pct = maxVal > 0 ? (d.value / maxVal) * 100 : 0;
                                         const currentMonthLabel = (new Date().getMonth() + 1) + "월";
                                         const isCurrent = d.label.includes(currentMonthLabel);

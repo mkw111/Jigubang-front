@@ -38,14 +38,14 @@ const MyPage: React.FC = () => {
     const [residentApproved, setResidentApproved] = useState(false);
 
     const getAvatarImage = (uuid: string) => {
-        if (!uuid) return '/image/캐릭터01.png';
+        if (!uuid) return '/image/char_01.png';
         let hash = 0;
         for (let i = 0; i < uuid.length; i++) {
             hash = uuid.charCodeAt(i) + ((hash << 5) - hash);
         }
         const index = Math.abs(hash % 19) + 1;
         const indexStr = String(index).padStart(2, '0');
-        return `/image/캐릭터${indexStr}.png`;
+        return `/image/char_${indexStr}.png`;
     };
 
     const getAuthHeaders = (additionalHeaders: Record<string, string> = {}): Record<string, string> => {
