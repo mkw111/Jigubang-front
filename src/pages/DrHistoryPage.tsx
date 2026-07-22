@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import './DrHistoryPage.css';
 
@@ -16,28 +16,54 @@ interface DRChallenge {
 
 const DrHistoryPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Parse tab query parameter (?tab=active | join-status | points | shop)
+    const queryParams = new URLSearchParams(location.search);
+    const initialTab = queryParams.get('tab') || 'active';
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // Dynamic states from database
+    // Core states
     const [user, setUser] = useState<any>({});
     const [activeIssue, setActiveIssue] = useState<any>(null);
     const [drSummary, setDrSummary] = useState<any>(null);
-    const [recentMissions, setRecentMissions] = useState<any[]>([]);
     const [drCards, setDrCards] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    // Interactive flow states
+    // Tab state (active, join-status, points, shop)
+    const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+    // Inside join-status tab: sub-tab (joined vs unjoined)
+    const [joinSubTab, setJoinSubTab] = useState<'joined' | 'unjoined'>('joined');
+
+    // Inside points tab: filter (all, use, earn)
+    const [pointFilter, setPointFilter] = useState<'all' | 'use' | 'earn'>('all');
+
+    // UI Interactive states
     const [joinStep, setJoinStep] = useState<'main' | 'agreement'>('main');
-    const [drawerType, setDrawerType] = useState<'KPX' | 'GYEONGNAM' | ''>('');
+    const [drawerType, setDrawerType] = useState<'KPX' | 'GYEONGNAM' | 'GWANGMYEONG' | ''>('');
     const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
     const [showGuide, setShowGuide] = useState(false);
-    const [selectedMission, setSelectedMission] = useState<DRChallenge | null>(null);
-
+    const [showAgreementDetail, setShowAgreementDetail] = useState(false);
+    
     // Signature/agreement states
     const [agreedTerms, setAgreedTerms] = useState(false);
     const [isDrawing, setIsDrawing] = useState(false);
     const [hasSigned, setHasSigned] = useState(false);
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
+    // Shop purchase states
+    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [showShopSuccess, setShowShopSuccess] = useState(false);
+
+    // Load initial tab from URL if it changes
+    useEffect(() => {
+        const tab = new URLSearchParams(location.search).get('tab');
+        if (tab) {
+            setActiveTab(tab);
+        }
+    }, [location.search]);
 
     // Fetch user session
     useEffect(() => {
@@ -73,7 +99,7 @@ const DrHistoryPage: React.FC = () => {
                 setDrSummary(await summaryRes.json());
             }
             if (recentRes.ok) {
-                setRecentMissions(await recentRes.json());
+                // Not mapped directly to state in this view
             }
             if (cardsRes.ok) {
                 setDrCards(await cardsRes.json());
@@ -217,98 +243,41 @@ const DrHistoryPage: React.FC = () => {
         refreshData();
     };
 
-    // Format LocalDateTime to HH:MM
-    const formatTime = (dateTimeStr: string) => {
-        if (!dateTimeStr) return '';
-        try {
-            const date = new Date(dateTimeStr);
-            const hrs = String(date.getHours()).padStart(2, '0');
-            const mins = String(date.getMinutes()).padStart(2, '0');
-            return `${hrs}:${mins}`;
-        } catch {
-            return '';
+    // Mock points transactions
+    const mockPointTransactions = [
+        { id: 1, type: 'use', title: '경남사랑 상품권 교환', date: '2026.06.10 11:59', change: -5000, balance: 15600 },
+        { id: 2, type: 'earn', title: '5월 국민DR 포인트 정산', date: '2026.06.01 09:00', change: 10000, balance: 20600 },
+        { id: 3, type: 'earn', title: '5월 경남DR 포인트 정산', date: '2026.06.01 09:00', change: 5000, balance: 10600 },
+        { id: 4, type: 'use', title: '네이버 페이 교환', date: '2026.05.27 21:59', change: -1000, balance: 5600 }
+    ];
+
+    // Mock products catalog
+    const mockProducts = [
+        { id: 1, name: '네이버페이 1만원권', provider: '네이버', price: 10000, image: '/image/image08.png' },
+        { id: 2, name: '투썸 아메리카노(R)', provider: '투썸플레이스', price: 4500, image: '/image/char_02.png' },
+        { id: 3, name: '스타벅스 아메리카노(Tall)', provider: '스타벅스', price: 4500, image: '/image/char_05.png' },
+        { id: 4, name: 'GS25 모바일 상품권 2천원권', provider: 'GS25', price: 2000, image: '/image/char_08.png' }
+    ];
+
+    const handleProductExchange = () => {
+        if (!selectedProduct) return;
+        const totalPoints = drSummary?.totalPoints || 15600;
+        if (totalPoints < selectedProduct.price) {
+            alert('보유 포인트가 부족하여 교환할 수 없습니다.');
+            return;
         }
+        setShowShopSuccess(true);
     };
 
-    // Stats calculations
-    const totalParticipation = drSummary?.total || 0;
-    const totalSuccess = drSummary?.success || 0;
-    const successRate = totalParticipation > 0 ? parseFloat(((totalSuccess / totalParticipation) * 100).toFixed(1)) : 0.0;
-
-    // Challenge Mapping
-    const drChallenges: DRChallenge[] = [];
-    if (activeIssue) {
-        const isJoined = activeIssue.drType === 'KPX' 
-            ? drCards?.isHouseholdsKpxDr 
-            : (activeIssue.drType === 'GYEONGNAM' ? drCards?.isHouseholdsGyeongnamDr : false);
-
-        drChallenges.push({
-            id: activeIssue.id,
-            title: `${activeIssue.drType} 긴급 절전 국민쉼표 챌린지`,
-            type: `${activeIssue.drType} DR`,
-            points: activeIssue.successPoint || 1000,
-            status: isJoined ? 'participating' : 'available',
-            date: '오늘',
-            time: `${formatTime(activeIssue.startAt)} ~ ${formatTime(activeIssue.endAt)}`,
-            targetReduction: '0.2 kWh 감축'
-        });
-    }
-
-    if (Array.isArray(recentMissions)) {
-        recentMissions.forEach((item: any, idx: number) => {
-            const isSuccess = item.result.startsWith('+');
-            const isFailed = item.result === '실패';
-            const status = isSuccess ? 'success' : (isFailed ? 'failed' : 'participating');
-            let pts = 0;
-            if (isSuccess) {
-                pts = parseInt(item.result.replace(/[^0-9]/g, '')) || 0;
-            }
-
-            let dateStr = '이력';
-            let timeStr = item.period;
-            if (item.period.includes('~')) {
-                const parts = item.period.split(' ~ ');
-                const startPart = parts[0]; 
-                timeStr = startPart.split(' ')[1] + ' ~ ' + parts[1];
-                dateStr = startPart.split(' ')[0].substring(5);
-            }
-
-            drChallenges.push({
-                id: 100 + idx,
-                title: `${item.dr} 미션 참여 이력`,
-                type: item.dr,
-                points: pts,
-                status: status,
-                date: dateStr,
-                time: timeStr,
-                targetReduction: '0.2 kWh 감축'
-            });
-        });
-    }
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'participating':
-                return <span className="dr-badge badge-active">참여 중</span>;
-            case 'available':
-                return <span className="dr-badge badge-avail">신청 가능</span>;
-            case 'approved':
-                return <span className="dr-badge badge-approved">승인 완료</span>;
-            case 'success':
-                return <span className="dr-badge badge-success">성공</span>;
-            case 'failed':
-                return <span className="dr-badge badge-failed">실패</span>;
-            default:
-                return null;
-        }
+    const closeShopSuccess = () => {
+        setShowShopSuccess(false);
+        setSelectedProduct(null);
     };
-
-    const isAnyJoined = drCards?.isHouseholdsKpxDr || drCards?.isHouseholdsGyeongnamDr;
 
     if (loading) {
         return (
             <div className="page-container dr-wrapper" style={{ justifyContent: 'center', alignItems: 'center' }}>
-                <div style={{ color: 'var(--color-text-dark)', fontSize: '15px', fontWeight: 600 }}>DR 상태 내역을 로드 중...</div>
+                <div style={{ color: 'var(--color-text-dark)', fontSize: '15px', fontWeight: 600 }}>DR 정보 로드 중...</div>
             </div>
         );
     }
@@ -316,456 +285,703 @@ const DrHistoryPage: React.FC = () => {
     return (
         <div className="page-container dr-wrapper" style={{ backgroundColor: '#F8FAFC', position: 'relative' }}>
             
-            {/* Case 1: Joined User Main Dashboard OR Intro Welcome Guide */}
-            {isAnyJoined ? (
-                <>
-                    {/* Header */}
-                    <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
-                        <button className="back-btn" onClick={() => navigate(-1)}>
-                            <span>‹</span>
-                        </button>
-                        <h2>수요반응 (DR)</h2>
-                        <div className="header-placeholder"></div>
-                    </header>
+            {/* 1. TAB: active (오늘의 DR 발령 상세 페이지 - Page 4) */}
+            {activeTab === 'active' && (
+                joinStep === 'main' ? (
+                    <>
+                        <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                            <button className="back-btn" onClick={() => navigate(-1)}>
+                                <span>‹</span>
+                            </button>
+                            <h2>오늘의 DR 발령</h2>
+                            <div className="header-placeholder"></div>
+                        </header>
 
-                    {/* Dashboard Content */}
-                    <main className="app-content dr-content">
-                        {/* Live Banner */}
-                        <div className="dr-welcome-card">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 2 }}>
-                                <div className="dr-welcome-top">
-                                    <span className="live-pulse">🔴 LIVE</span>
-                                    <span className="dr-count-label">오늘의 DR 발령 <strong>{activeIssue ? '진행 중' : '대기 중'}</strong></span>
-                                </div>
-                                <div className="dr-welcome-main">
-                                    {activeIssue ? (
-                                        <>
-                                            지금은 절전 시간!<br />
-                                            <span style={{ fontSize: '13px', fontWeight: 700, backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '6px', marginTop: '6px', display: 'inline-block' }}>
-                                                ⏱️ {formatTime(activeIssue.startAt)} ~ {formatTime(activeIssue.endAt)} ({activeIssue.successPoint || 1000}P)
+                        <main className="app-content dr-content" style={{ padding: '20px' }}>
+                            {/* Today date indicator */}
+                            <div style={{ textAlign: 'center', fontSize: '15px', fontWeight: 800, color: '#1E293B', marginBottom: '16px' }}>
+                                {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
+                            </div>
+
+                            {/* Active Issue Cards or Empty state */}
+                            {activeIssue ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    {/* Ongoing issue (Figma ongoing/blue card spec) */}
+                                    <div className="card dr-active-card-item ongoing" style={{ background: 'linear-gradient(135deg, #00A8FF 0%, #0059FF 100%)', color: 'white', padding: '20px', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 24px rgba(0, 168, 255, 0.2)' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 800, backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '10px', width: 'fit-content' }}>
+                                                진행 중인 발령
                                             </span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            잠깐의 절전으로<br />지구를 지켜 볼까요?
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                            <img 
-                                src="/image/jigubang_3d_ani.gif" 
-                                alt="지구방 3D" 
-                                style={{ width: '84px', height: '84px', objectFit: 'contain', zIndex: 2, transform: 'translateY(4px)' }} 
-                                onError={(e) => { (e.target as HTMLImageElement).src = '/image/jigubang_3d.png'; }}
-                            />
-                        </div>
-
-                        {/* Guide Book Banner Button */}
-                        <div className="dr-guide-banner-btn" onClick={() => setShowGuide(true)}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ fontSize: '20px' }}>💡</span>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <strong style={{ fontSize: '14px', fontWeight: 800 }}>수요반응 참여 방법 가이드</strong>
-                                    <span style={{ fontSize: '11px', opacity: 0.85 }}>에너지 절약하고 확실하게 포인트 받는 꿀팁</span>
-                                </div>
-                            </div>
-                            <span style={{ fontSize: '16px', fontWeight: 700 }}>확인하기 ›</span>
-                        </div>
-
-                        {/* Active Program list */}
-                        <div className="dr-programs-section">
-                            <h3 className="dr-section-title">가입 중인 DR 프로그램</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', zIndex: 2 }}>
-                                <div className="card dr-program-card">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ fontSize: '16px', backgroundColor: '#EFF6FF', padding: '6px', borderRadius: '10px' }}>🇰🇷</span>
-                                        <strong style={{ fontSize: '13px', fontWeight: 800 }}>국민DR (쉼표)</strong>
-                                    </div>
-                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: '1.4' }}>
-                                        전국 아파트 대상<br />전력거래소 주관 미션
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#3B82F6' }}>1,000 P / 회</span>
-                                        {drCards?.isHouseholdsKpxDr ? (
-                                            <span className="dr-badge badge-success">참여 중</span>
-                                        ) : (
-                                            <button 
-                                                onClick={() => { setDrawerType('KPX'); setJoinStep('agreement'); }}
-                                                style={{ border: 'none', backgroundColor: '#3B82F6', color: 'white', padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}
-                                            >
-                                                신청하기
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="card dr-program-card">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ fontSize: '16px', backgroundColor: '#ECFDF5', padding: '6px', borderRadius: '10px' }}>🍊</span>
-                                        <strong style={{ fontSize: '13px', fontWeight: 800 }}>경남DR</strong>
-                                    </div>
-                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: '1.4' }}>
-                                        경상남도 도청 주관<br />도내 주민 전용 미션
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#10B981' }}>1,600 P / 회</span>
-                                        {drCards?.isHouseholdsGyeongnamDr ? (
-                                            <span className="dr-badge badge-success">참여 중</span>
-                                        ) : (
-                                            <button 
-                                                onClick={() => { setDrawerType('GYEONGNAM'); setJoinStep('agreement'); }}
-                                                style={{ border: 'none', backgroundColor: '#10B981', color: 'white', padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}
-                                            >
-                                                신청하기
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <img 
-                                src="/image/char_02.png" 
-                                alt="Mascot" 
-                                style={{ position: 'absolute', right: '-4px', bottom: '-8px', width: '70px', height: '70px', objectFit: 'contain', zIndex: 1 }} 
-                            />
-                        </div>
-
-                        {/* Cumulative Statistics Dashboard */}
-                        <div className="card dr-dashboard-card">
-                            <h3 className="dr-card-title">나의 DR 참여 통계</h3>
-                            
-                            <div className="dr-stats-grid">
-                                <div className="dr-stat-box">
-                                    <span className="dr-box-label">누적 참여</span>
-                                    <div className="dr-box-value">
-                                        <span className="number-font val">{totalParticipation}</span>
-                                        <span className="unit">회</span>
-                                    </div>
-                                </div>
-                                <div className="dr-stat-box">
-                                    <span className="dr-box-label">누적 성공</span>
-                                    <div className="dr-box-value green-color">
-                                        <span className="number-font val">{totalSuccess}</span>
-                                        <span className="unit">회</span>
-                                    </div>
-                                </div>
-                                <div className="dr-stat-box">
-                                    <span className="dr-box-label">평균 성공률</span>
-                                    <div className="dr-box-value blue-color">
-                                        <span className="number-font val">{successRate}</span>
-                                        <span className="unit">%</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="dr-summary-strip">
-                                <span>참여 중 <strong>{drChallenges.filter(c => c.status === 'participating').length}개</strong></span>
-                                <span>신청 가능 <strong>{drChallenges.filter(c => c.status === 'available').length}개</strong></span>
-                                <span>성공 완료 <strong>{totalSuccess}개</strong></span>
-                            </div>
-                        </div>
-
-                        {/* Challenge List */}
-                        <div className="dr-list-section">
-                            <h3 className="dr-section-title">DR 미션 리스트</h3>
-                            
-                            <div className="dr-list-container">
-                                {drChallenges.length > 0 ? (
-                                    drChallenges.map((challenge) => (
-                                        <div 
-                                            key={challenge.id} 
-                                            className={`card dr-challenge-item ${challenge.status === 'failed' ? 'dimmed' : ''}`}
-                                            onClick={() => setSelectedMission(challenge)}
-                                        >
-                                            <div className="challenge-left">
-                                                <div className="badge-row">
-                                                    {getStatusBadge(challenge.status)}
-                                                    <span className="chal-type">{challenge.type}</span>
-                                                </div>
-                                                <div className="chal-title">{challenge.title}</div>
-                                                <div className="chal-time">{challenge.date} | {challenge.time}</div>
-                                            </div>
-
-                                            <div className="challenge-right">
-                                                <span className={`points-val number-font ${challenge.status === 'success' || challenge.status === 'participating' ? 'green-color' : ''}`}>
-                                                    {challenge.status === 'failed' ? '0' : `+${challenge.points.toLocaleString()}`}
-                                                </span>
-                                                <span className="points-unit">P</span>
+                                            <strong style={{ fontSize: '18px', fontWeight: 900 }}>{activeIssue.drType} 긴급 절전</strong>
+                                            <span style={{ fontSize: '12px', opacity: 0.9 }}>
+                                                ⏱️ {new Date(activeIssue.startAt).toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'})} ~ {new Date(activeIssue.endAt).toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'})}
+                                            </span>
+                                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#FFF3C4' }}>
+                                                🎯 절감 목표 : -10% 이상 (리워드 {activeIssue.successPoint || 1000}P)
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                            <div style={{ backgroundColor: '#FFFFFF', color: '#0059FF', padding: '6px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: 800 }}>
+                                                ⏰ 진행중
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="no-data-display" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid #F0F0F0' }}>
-                                        참여 가능한 활성 DR 미션이나 과거 참여 이력이 없습니다.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </main>
-                    <BottomNav />
-                </>
-            ) : (
-                /* Case 2: Unjoined User Page Restructured Flow */
-                <>
-                    {/* Welcome Guide Intro (joinStep === 'main') */}
-                    {joinStep === 'main' ? (
-                        <>
-                            {/* Header */}
-                            <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
-                                <button className="back-btn" onClick={() => navigate(-1)}>
-                                    <span>‹</span>
-                                </button>
-                                <h2>수요반응 DR</h2>
-                                <div className="header-placeholder"></div>
-                            </header>
-
-                            {/* Main Scroll Content */}
-                            <main className="app-content dr-content" style={{ padding: '0 24px 100px 24px', backgroundColor: '#FFFFFF' }}>
-                                
-                                {/* 1. Intro Title */}
-                                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                                    <h3 style={{ fontSize: '20px', fontWeight: 900, color: '#0F172A', lineHeight: 1.4 }}>
-                                        수요반응 (DR)이 무엇인지<br />알아볼까요?
-                                    </h3>
-                                </div>
-
-                                {/* 2. Main Illustration */}
-                                <div style={{ display: 'flex', justifyContent: 'center', margin: '24px 0' }}>
-                                    <img 
-                                        src="/image/char_08.png" 
-                                        alt="Book Reading Family" 
-                                        style={{ width: '160px', height: 'auto', objectFit: 'contain' }}
-                                        onError={(e) => { (e.target as HTMLImageElement).src = '/image/char_05.png'; }}
-                                    />
-                                </div>
-
-                                {/* 3. Intro Description */}
-                                <div style={{ textAlign: 'center', padding: '0 8px', fontSize: '13px', color: '#475569', lineHeight: 1.6, wordBreak: 'keep-all' }}>
-                                    국제 기후위기에 대응하고, 전력 공급의 불안정을 해결하기 위해 전력 사용 피크(최대) 시간에 <span style={{ color: '#00A8FF', fontWeight: 800 }}>전력 사용량을 줄이는데</span> 성공한 분들께 <span style={{ color: '#00A8FF', fontWeight: 800 }}>인센티브를 드리는</span> 캠페인 입니다.
-                                </div>
-
-                                {/* 4. Operating Orgs (Who operates?) */}
-                                <div style={{ marginTop: '40px', textAlign: 'center' }}>
-                                    <h4 style={{ fontSize: '15px', fontWeight: 900, color: '#0F172A', marginBottom: '16px' }}>누가 운영 하나요?</h4>
-                                    
-                                    {/* Curved oval box containing logos */}
-                                    <div style={{ border: '1.2px solid #C5E2F6', borderRadius: '40px', padding: '16px 20px', display: 'flex', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-                                        <img src="/image/image10.png" alt="산자부" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
-                                        <img src="/image/image11.png" alt="전력거래소" style={{ height: '22px', width: 'auto', objectFit: 'contain' }} />
-                                        <img src="/image/image12.png" alt="서울" style={{ height: '26px', width: 'auto', objectFit: 'contain' }} />
-                                        <img src="/image/image13.png" alt="충주" style={{ height: '26px', width: 'auto', objectFit: 'contain' }} />
-                                        <img src="/image/image07.png" alt="경남" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
-                                    </div>
-
-                                    <p style={{ fontSize: '11px', color: '#64748B', lineHeight: 1.6, marginTop: '12px', textAlign: 'left', padding: '0 4px', wordBreak: 'keep-all' }}>
-                                        중앙부처인 <span style={{ color: '#0059FF', fontWeight: 700 }}>산업통상자원부 및 전력거래소</span> 부터 <span style={{ color: '#0059FF', fontWeight: 700 }}>서울시 · 충주시 · 경상남도</span> 등 지자체가 제도 설계 및 재원을 담당하고 '<span style={{ color: '#0059FF', fontWeight: 700 }}>에너넷</span>'과 같은 '<span style={{ color: '#0059FF', fontWeight: 700 }}>수요반응 공식 허가 사업자</span>'가 운영 합니다.
-                                    </p>
-                                </div>
-
-                                {/* 5. Step Guide Flow */}
-                                <div style={{ marginTop: '40px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px', color: '#334155', lineHeight: 1.5 }}>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <span style={{ color: '#0059FF', fontWeight: 900 }}>하나!</span>
-                                            <p style={{ margin: 0, wordBreak: 'keep-all' }}>원격검침이 가능한 디지털 계량기가 설치된 세대만 가능합니다. 지구방 회원님의 아파트 단지에는 <strong>원격검침 계량기가 이미 설치되어 있습니다!</strong></p>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <span style={{ color: '#0059FF', fontWeight: 900 }}>둘!</span>
-                                            <p style={{ margin: 0, wordBreak: 'keep-all' }}>신청 가능한 DR 메뉴를 앱에서 선택하신 후 'DR 신청서'를 온라인으로 간편하게 작성하시면 됩니다.</p>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <span style={{ color: '#0059FF', fontWeight: 900 }}>셋!!!</span>
-                                            <p style={{ margin: 0, wordBreak: 'keep-all' }}>각 기관에서 신청심사가 끝나면 아래와 같이 DR에 참여하실 수 있습니다.</p>
-                                        </div>
-                                    </div>
-
-                                    {/* 4 Steps illustrations flow */}
-                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
-                                        <img 
-                                            src="/image/dr_guide_method.png" 
-                                            alt="DR Process Steps" 
-                                            style={{ width: '100%', maxWidth: '340px', borderRadius: '16px', border: '1.2px solid #F1F5F9' }} 
-                                        />
                                     </div>
                                 </div>
-
-                            </main>
-
-                            {/* Floating bottom action button */}
-                            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 20px 24px 20px', backgroundColor: '#FFFFFF', borderTop: '1px solid #F1F5F9', zIndex: 100 }}>
-                                <button 
-                                    onClick={() => setIsBottomSheetOpen(true)}
-                                    style={{ width: '100%', height: '52px', border: 'none', borderRadius: '16px', backgroundColor: '#3B82F6', color: 'white', fontSize: '15px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 16px rgba(59, 130, 246, 0.25)' }}
-                                >
-                                    신청 가능 DR 캠페인 목록
-                                </button>
-                            </div>
-
-                            {/* Bottom Sheet for Campaign selection */}
-                            {isBottomSheetOpen && (
-                                <div className="modal-overlay animated-fade-in" onClick={() => setIsBottomSheetOpen(false)} style={{ zIndex: 11000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                                    <div className="drawer-content slide-up-drawer" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', borderTopLeftRadius: '30px', borderTopRightRadius: '30px', padding: '24px 24px 40px 24px', backgroundColor: '#FFFFFF', boxShadow: '0 -8px 30px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
-                                        <div style={{ width: '36px', height: '4px', backgroundColor: '#E2E8F0', borderRadius: '2px', alignSelf: 'center', marginBottom: '8px' }}></div>
-                                        
-                                        {/* Close Button X */}
-                                        <button 
-                                            onClick={() => setIsBottomSheetOpen(false)}
-                                            style={{ position: 'absolute', right: '24px', top: '24px', border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748B' }}
-                                        >
-                                            ✕
-                                        </button>
-
-                                        <h3 style={{ fontSize: '16px', fontWeight: 900, color: '#0F172A', textAlign: 'center', margin: '0 0 10px 0' }}>신청 가능 DR 캠페인 목록</h3>
-                                        
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            <button 
-                                                onClick={() => { setIsBottomSheetOpen(false); setDrawerType('KPX'); setJoinStep('agreement'); }}
-                                                style={{ width: '100%', height: '52px', border: 'none', borderRadius: '14px', backgroundColor: '#00A8FF', color: 'white', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
-                                            >
-                                                국민DR 바로가기
-                                            </button>
-                                            <button 
-                                                onClick={() => { setIsBottomSheetOpen(false); setDrawerType('GYEONGNAM'); setJoinStep('agreement'); }}
-                                                style={{ width: '100%', height: '52px', border: 'none', borderRadius: '14px', backgroundColor: '#00A8FF', color: 'white', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
-                                            >
-                                                경남DR 바로가기
-                                            </button>
-                                            <button 
-                                                disabled
-                                                style={{ width: '100%', height: '52px', border: 'none', borderRadius: '14px', backgroundColor: '#E5E5E5', color: '#FFFFFF', fontSize: '14px', fontWeight: 800, cursor: 'not-allowed' }}
-                                            >
-                                                광명DR 바로가기
-                                            </button>
-                                        </div>
+                            ) : (
+                                /* Empty 발령 상태 (Page 4) */
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center', gap: '16px' }}>
+                                    <div style={{ position: 'relative', width: '90px', height: '90px' }}>
+                                        <img src="/image/char_02.png" alt="Cat Mascot" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                    </div>
+                                    <div style={{ backgroundColor: '#E2E8F0', color: '#475569', padding: '12px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, position: 'relative' }}>
+                                        현재 까지 발령 된 DR이 없습니다.
                                     </div>
                                 </div>
                             )}
 
-                            <BottomNav />
-                        </>
-                    ) : (
-                        /* Agreement & Signature Canvas View (joinStep === 'agreement') */
-                        <>
-                            {/* Header */}
-                            <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
-                                <button className="back-btn" onClick={() => setJoinStep('main')}>
-                                    <span>‹</span>
-                                </button>
-                                <h2>OODR 참여 동의</h2>
-                                <div className="header-placeholder"></div>
-                            </header>
+                            {/* Info Guide method process */}
+                            <div style={{ marginTop: '30px', textAlign: 'center' }}>
+                                <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 700 }}>
+                                    ※ 참여 가능 미신청 DR 캠페인은 신청 승인 후 참여 가능합니다.
+                                </span>
+                            </div>
+                        </main>
 
-                            {/* Canvas Sign Scroll Area */}
-                            <main className="app-content dr-content" style={{ backgroundColor: '#FFFFFF', padding: '0 24px 100px 24px' }}>
-                                
-                                {/* 1. Title */}
-                                <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                                    <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0F172A', lineHeight: 1.4 }}>
-                                        수요반응 (DR) 신청은<br />어떻게 하나요?
-                                    </h3>
-                                </div>
+                        {/* Floating bottom action bar */}
+                        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 20px 24px 20px', backgroundColor: '#FFFFFF', borderTop: '1px solid #F1F5F9', zIndex: 100 }}>
+                            <button 
+                                onClick={() => setIsBottomSheetOpen(true)}
+                                style={{ width: '100%', height: '52px', border: 'none', borderRadius: '16px', backgroundColor: '#3B82F6', color: 'white', fontSize: '15px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                신청 가능 DR 캠페인 목록
+                            </button>
+                        </div>
 
-                                {/* 2. Dragon Mascot Character */}
-                                <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
-                                    <img 
-                                        src="/image/char_05.png" 
-                                        alt="Dragon Character" 
-                                        style={{ width: '100px', height: '100px', objectFit: 'contain' }}
-                                        onError={(e) => { (e.target as HTMLImageElement).src = '/image/char_02.png'; }}
-                                    />
-                                </div>
-
-                                {/* 3. Info Text Gray Box */}
-                                <div style={{ backgroundColor: '#F0F8FF', border: '1.2px solid #C5E2F6', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                                    <p style={{ margin: 0, fontSize: '11px', color: '#64748B', lineHeight: 1.6, textAlign: 'center', wordBreak: 'keep-all' }}>
-                                        수요반응(DR)은 실명제 기반의 서비스 입니다.<br />
-                                        '지구방' 앱을 통해 온라인으로 간편하게 신청할 수 있습니다.<br />
-                                        "자세히 보기" 확인 후 "서명하기"를 진행해 주세요.
-                                    </p>
+                        {/* Bottom Sheet for Campaign selection (Page 5) */}
+                        {isBottomSheetOpen && (
+                            <div className="modal-overlay animated-fade-in" onClick={() => setIsBottomSheetOpen(false)} style={{ zIndex: 11000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                <div className="drawer-content slide-up-drawer" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', borderTopLeftRadius: '30px', borderTopRightRadius: '30px', padding: '24px 24px 40px 24px', backgroundColor: '#FFFFFF', boxShadow: '0 -8px 30px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
+                                    <div style={{ width: '36px', height: '4px', backgroundColor: '#E2E8F0', borderRadius: '2px', alignSelf: 'center', marginBottom: '8px' }}></div>
+                                    
                                     <button 
-                                        onClick={() => setShowGuide(true)}
-                                        style={{ width: '80%', height: '38px', border: '1.2px solid #00A8FF', borderRadius: '10px', backgroundColor: 'transparent', color: '#00A8FF', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                                        onClick={() => setIsBottomSheetOpen(false)}
+                                        style={{ position: 'absolute', right: '24px', top: '24px', border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748B' }}
                                     >
-                                        신청 동의서 자세히 보기
+                                        ✕
                                     </button>
+
+                                    <h3 style={{ fontSize: '16px', fontWeight: 900, color: '#0F172A', textAlign: 'center', margin: '0 0 10px 0' }}>신청 가능 DR 캠페인 목록</h3>
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <button 
+                                            onClick={() => { setIsBottomSheetOpen(false); setDrawerType('KPX'); setJoinStep('agreement'); }}
+                                            style={{ width: '100%', height: '52px', border: 'none', borderRadius: '14px', backgroundColor: '#00A8FF', color: 'white', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
+                                        >
+                                            국민DR 바로가기
+                                        </button>
+                                        <button 
+                                            onClick={() => { setIsBottomSheetOpen(false); setDrawerType('GYEONGNAM'); setJoinStep('agreement'); }}
+                                            style={{ width: '100%', height: '52px', border: 'none', borderRadius: '14px', backgroundColor: '#00A8FF', color: 'white', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
+                                        >
+                                            경남DR 바로가기
+                                        </button>
+                                        <button 
+                                            disabled
+                                            style={{ width: '100%', height: '52px', border: 'none', borderRadius: '14px', backgroundColor: '#E5E5E5', color: '#FFFFFF', fontSize: '14px', fontWeight: 800, cursor: 'not-allowed' }}
+                                        >
+                                            광명DR 바로가기 (준비중)
+                                        </button>
+                                    </div>
                                 </div>
+                            </div>
+                        )}
 
-                                {/* 4. Sign Area Label */}
-                                <div style={{ marginTop: '24px', textAlign: 'center' }}>
-                                    <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', marginBottom: '8px' }}>
-                                        참여에 동의하시면 아래에 서명해 주세요
-                                    </h4>
-                                </div>
+                        <BottomNav />
+                    </>
+                ) : (
+                    /* eformsign signature Canvas view */
+                    <>
+                        <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                            <button className="back-btn" onClick={() => setJoinStep('main')}>
+                                <span>‹</span>
+                            </button>
+                            <h2>OODR 참여 동의</h2>
+                            <div className="header-placeholder"></div>
+                        </header>
 
-                                {/* 5. Interactive HTML5 Drawing Canvas Container */}
-                                <div style={{ position: 'relative', width: '100%', height: '180px', border: '1.5px solid #C5E2F6', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#FAFAFA' }}>
-                                    <canvas
-                                        ref={canvasRef}
-                                        width={340}
-                                        height={180}
-                                        onMouseDown={startDrawing}
-                                        onMouseMove={draw}
-                                        onMouseUp={stopDrawing}
-                                        onMouseLeave={stopDrawing}
-                                        onTouchStart={startDrawing}
-                                        onTouchMove={draw}
-                                        onTouchEnd={stopDrawing}
-                                        style={{ display: 'block', width: '100%', height: '100%', cursor: 'crosshair', touchAction: 'none' }}
-                                    />
-                                    {!hasSigned && (
-                                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', color: '#94A3B8', fontSize: '12px', fontWeight: 500 }}>
-                                            여기를 터치해 서명해 주세요
-                                        </div>
-                                    )}
-                                </div>
+                        <main className="app-content dr-content" style={{ backgroundColor: '#FFFFFF', padding: '0 24px 100px 24px' }}>
+                            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                                <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0F172A', lineHeight: 1.4 }}>
+                                    수요반응 (DR) 신청은<br />어떻게 하나요?
+                                </h3>
+                            </div>
 
-                                {/* 6. Terms Checkbox */}
-                                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: '#334155' }}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={agreedTerms} 
-                                            onChange={(e) => setAgreedTerms(e.target.checked)}
-                                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                                        />
-                                        약관 동의 및 신청 정보를 위임 발송합니다.
-                                    </label>
-                                </div>
+                            <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
+                                <img src="/image/char_05.png" alt="Dragon" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
+                            </div>
 
-                            </main>
-
-                            {/* Footer actions */}
-                            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 20px 24px 20px', backgroundColor: '#FFFFFF', borderTop: '1px solid #F1F5F9', zIndex: 100, display: 'flex', gap: '10px' }}>
+                            <div style={{ backgroundColor: '#F0F8FF', border: '1.2px solid #C5E2F6', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                <p style={{ margin: 0, fontSize: '11px', color: '#64748B', lineHeight: 1.6, textAlign: 'center', wordBreak: 'keep-all' }}>
+                                    수요반응(DR)은 실명제 기반의 서비스 입니다.<br />
+                                    지구방 앱을 통해 온라인으로 간편하게 신청할 수 있습니다.
+                                </p>
                                 <button 
-                                    onClick={clearCanvas}
-                                    style={{ flex: 1, height: '50px', border: 'none', borderRadius: '12px', backgroundColor: '#E5E5E5', color: '#64748B', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
+                                    onClick={() => setShowAgreementDetail(true)}
+                                    style={{ width: '80%', height: '38px', border: '1.2px solid #00A8FF', borderRadius: '10px', backgroundColor: 'transparent', color: '#00A8FF', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
                                 >
-                                    서명 초기화
-                                </button>
-                                <button 
-                                    onClick={handleJoinSubmit}
-                                    style={{ 
-                                        flex: 2, 
-                                        height: '50px', 
-                                        border: 'none', 
-                                        borderRadius: '12px', 
-                                        backgroundColor: (agreedTerms && hasSigned) ? '#00A8FF' : '#E5E5E5', 
-                                        color: (agreedTerms && hasSigned) ? '#FFFFFF' : '#94A3B8', 
-                                        fontSize: '14px', 
-                                        fontWeight: 800, 
-                                        cursor: (agreedTerms && hasSigned) ? 'pointer' : 'not-allowed'
-                                    }}
-                                >
-                                    신청하기
+                                    신청 동의서 자세히 보기
                                 </button>
                             </div>
 
-                            <BottomNav />
-                        </>
-                    )}
+                            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                                <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', marginBottom: '8px' }}>
+                                    참여에 동의하시면 아래에 서명해 주세요
+                                </h4>
+                            </div>
+
+                            <div style={{ position: 'relative', width: '100%', height: '180px', border: '1.5px solid #C5E2F6', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#FAFAFA' }}>
+                                <canvas
+                                    ref={canvasRef}
+                                    width={340}
+                                    height={180}
+                                    onMouseDown={startDrawing}
+                                    onMouseMove={draw}
+                                    onMouseUp={stopDrawing}
+                                    onMouseLeave={stopDrawing}
+                                    onTouchStart={startDrawing}
+                                    onTouchMove={draw}
+                                    onTouchEnd={stopDrawing}
+                                    style={{ display: 'block', width: '100%', height: '100%', cursor: 'crosshair', touchAction: 'none' }}
+                                />
+                                {!hasSigned && (
+                                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', color: '#94A3B8', fontSize: '12px', fontWeight: 500 }}>
+                                        여기를 터치해 서명해 주세요
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: '#334155' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={agreedTerms} 
+                                        onChange={(e) => setAgreedTerms(e.target.checked)}
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                    약관 동의 및 신청 정보를 위임 발송합니다.
+                                </label>
+                            </div>
+                        </main>
+
+                        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 20px 24px 20px', backgroundColor: '#FFFFFF', borderTop: '1px solid #F1F5F9', zIndex: 100, display: 'flex', gap: '10px' }}>
+                            <button 
+                                onClick={clearCanvas}
+                                style={{ flex: 1, height: '50px', border: 'none', borderRadius: '12px', backgroundColor: '#E5E5E5', color: '#64748B', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                서명 초기화
+                            </button>
+                            <button 
+                                onClick={handleJoinSubmit}
+                                style={{ 
+                                    flex: 2, 
+                                    height: '50px', 
+                                    border: 'none', 
+                                    borderRadius: '12px', 
+                                    backgroundColor: (agreedTerms && hasSigned) ? '#00A8FF' : '#E5E5E5', 
+                                    color: (agreedTerms && hasSigned) ? '#FFFFFF' : '#94A3B8', 
+                                    fontSize: '14px', 
+                                    fontWeight: 800, 
+                                    cursor: (agreedTerms && hasSigned) ? 'pointer' : 'not-allowed'
+                                }}
+                            >
+                                신청하기
+                            </button>
+                        </div>
+
+                        <BottomNav />
+                    </>
+                )
+            )}
+
+            {/* 2. TAB: join-status (참여 중인 나의 DR 상세 페이지 - Page 6) */}
+            {activeTab === 'join-status' && (
+                joinStep === 'main' ? (
+                    <>
+                        <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                            <button className="back-btn" onClick={() => navigate(-1)}>
+                                <span>‹</span>
+                            </button>
+                            <h2>참여 중인 나의 DR</h2>
+                            <div className="header-placeholder"></div>
+                        </header>
+
+                        {/* Sub-tab menu switch */}
+                        <div style={{ display: 'flex', padding: '12px 20px', gap: '10px', backgroundColor: '#FFFFFF' }}>
+                            <button 
+                                onClick={() => setJoinSubTab('joined')}
+                                style={{ flex: 1, height: '36px', border: 'none', borderRadius: '20px', fontSize: '12px', fontWeight: 800, backgroundColor: joinSubTab === 'joined' ? '#00A8FF' : '#F1F5F9', color: joinSubTab === 'joined' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                            >
+                                참여 중인 DR
+                            </button>
+                            <button 
+                                onClick={() => setJoinSubTab('unjoined')}
+                                style={{ flex: 1, height: '36px', border: 'none', borderRadius: '20px', fontSize: '12px', fontWeight: 800, backgroundColor: joinSubTab === 'unjoined' ? '#00A8FF' : '#F1F5F9', color: joinSubTab === 'unjoined' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                            >
+                                미신청 DR
+                            </button>
+                        </div>
+
+                        <main className="app-content dr-content" style={{ padding: '16px' }}>
+                            
+                            {joinSubTab === 'joined' ? (
+                                /* 참여 중인 DR 리스트 (국민/경남 등 가입 완료된 카드만 노출) */
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    
+                                    {/* 국민 DR 카드 */}
+                                    {drCards?.isHouseholdsKpxDr && (
+                                        <div className="card dr-join-status-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '16px', backgroundColor: '#EFF6FF', padding: '6px', borderRadius: '10px' }}>🇰🇷</span>
+                                                <strong style={{ fontSize: '15px', fontWeight: 900, color: '#1E293B' }}>국민DR (쉼표)</strong>
+                                            </div>
+
+                                            {/* Progress Process lines */}
+                                            <div className="dr-progress-line-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '8px', borderLeft: '2px dashed #00A8FF', marginLeft: '12px' }}>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                    <span style={{ fontWeight: 800, color: '#00A8FF' }}>● STEP 1. 신청서 작성/제출</span>
+                                                    <span style={{ color: '#64748B' }}>2024-09-29</span>
+                                                </div>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                    <span style={{ fontWeight: 800, color: '#00A8FF' }}>● STEP 2. 가입 승인 완료</span>
+                                                    <span style={{ color: '#64748B' }}>2024-11-19</span>
+                                                </div>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                    <span style={{ fontWeight: 800, color: '#00A8FF' }}>● STEP 3. DR 참여 개시</span>
+                                                    <span style={{ color: '#64748B' }}>2024-12-06</span>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={() => alert('약관 동의 완료 및 서명 처리가 승인되었습니다.')}
+                                                style={{ width: '100%', height: '42px', border: '1.2px solid #00A8FF', borderRadius: '12px', backgroundColor: 'transparent', color: '#00A8FF', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                                            >
+                                                신청 동의서 자세히 보기
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* 경남 DR 카드 */}
+                                    {drCards?.isHouseholdsGyeongnamDr && (
+                                        <div className="card dr-join-status-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '16px', backgroundColor: '#ECFDF5', padding: '6px', borderRadius: '10px' }}>🍊</span>
+                                                <strong style={{ fontSize: '15px', fontWeight: 900, color: '#1E293B' }}>경남DR</strong>
+                                            </div>
+
+                                            {/* Progress Process lines */}
+                                            <div className="dr-progress-line-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '8px', borderLeft: '2px dashed #00A8FF', marginLeft: '12px' }}>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                    <span style={{ fontWeight: 800, color: '#00A8FF' }}>● STEP 1. 신청서 작성/제출</span>
+                                                    <span style={{ color: '#64748B' }}>2024-10-02</span>
+                                                </div>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                    <span style={{ fontWeight: 800, color: '#00A8FF' }}>● STEP 2. 가입 승인 완료</span>
+                                                    <span style={{ color: '#64748B' }}>2024-11-20</span>
+                                                </div>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                    <span style={{ fontWeight: 800, color: '#00A8FF' }}>● STEP 3. DR 참여 개시</span>
+                                                    <span style={{ color: '#64748B' }}>2024-12-08</span>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={() => alert('약관 동의 완료 및 서명 처리가 승인되었습니다.')}
+                                                style={{ width: '100%', height: '42px', border: '1.2px solid #00A8FF', borderRadius: '12px', backgroundColor: 'transparent', color: '#00A8FF', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                                            >
+                                                신청 동의서 자세히 보기
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {!drCards?.isHouseholdsKpxDr && !drCards?.isHouseholdsGyeongnamDr && (
+                                        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+                                            참여 중인 DR 프로그램이 없습니다. 미신청 탭에서 신청해주세요.
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                /* 미신청 DR 리스트 */
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    
+                                    {/* 미신청 국민 DR 카드 */}
+                                    {!drCards?.isHouseholdsKpxDr && (
+                                        <div className="card dr-join-status-card unjoined" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '16px', backgroundColor: '#EFF6FF', padding: '6px', borderRadius: '10px' }}>🇰🇷</span>
+                                                <strong style={{ fontSize: '15px', fontWeight: 900, color: '#1E293B' }}>국민DR (쉼표)</strong>
+                                            </div>
+
+                                            <div className="dr-progress-line-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '8px', borderLeft: '2px dashed #CBD5E1', marginLeft: '12px' }}>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94A3B8' }}>
+                                                    <span>○ STEP 1. 신청서 작성/제출</span>
+                                                    <span>미신청</span>
+                                                </div>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94A3B8' }}>
+                                                    <span>○ STEP 2. 가입 승인 완료</span>
+                                                    <span>-</span>
+                                                </div>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94A3B8' }}>
+                                                    <span>○ STEP 3. DR 참여 개시</span>
+                                                    <span>-</span>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={() => { setDrawerType('KPX'); setJoinStep('agreement'); }}
+                                                style={{ width: '100%', height: '42px', border: 'none', borderRadius: '12px', backgroundColor: '#00A8FF', color: 'white', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                                            >
+                                                신청하러 바로가기
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* 미신청 경남 DR 카드 */}
+                                    {!drCards?.isHouseholdsGyeongnamDr && (
+                                        <div className="card dr-join-status-card unjoined" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '16px', backgroundColor: '#ECFDF5', padding: '6px', borderRadius: '10px' }}>🍊</span>
+                                                <strong style={{ fontSize: '15px', fontWeight: 900, color: '#1E293B' }}>경남DR</strong>
+                                            </div>
+
+                                            <div className="dr-progress-line-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '8px', borderLeft: '2px dashed #CBD5E1', marginLeft: '12px' }}>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94A3B8' }}>
+                                                    <span>○ STEP 1. 신청서 작성/제출</span>
+                                                    <span>미신청</span>
+                                                </div>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94A3B8' }}>
+                                                    <span>○ STEP 2. 가입 승인 완료</span>
+                                                    <span>-</span>
+                                                </div>
+                                                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94A3B8' }}>
+                                                    <span>○ STEP 3. DR 참여 개시</span>
+                                                    <span>-</span>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={() => { setDrawerType('GYEONGNAM'); setJoinStep('agreement'); }}
+                                                style={{ width: '100%', height: '42px', border: 'none', borderRadius: '12px', backgroundColor: '#00A8FF', color: 'white', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                                            >
+                                                신청하러 바로가기
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                        </main>
+                        <BottomNav />
+                    </>
+                ) : (
+                    /* OODR signature canvas view */
+                    <>
+                        <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                            <button className="back-btn" onClick={() => setJoinStep('main')}>
+                                <span>‹</span>
+                            </button>
+                            <h2>OODR 참여 동의</h2>
+                            <div className="header-placeholder"></div>
+                        </header>
+
+                        <main className="app-content dr-content" style={{ backgroundColor: '#FFFFFF', padding: '0 24px 100px 24px' }}>
+                            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                                <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0F172A', lineHeight: 1.4 }}>
+                                    수요반응 (DR) 신청은<br />어떻게 하나요?
+                                </h3>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
+                                <img src="/image/char_05.png" alt="Dragon" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
+                            </div>
+
+                            <div style={{ backgroundColor: '#F0F8FF', border: '1.2px solid #C5E2F6', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                <p style={{ margin: 0, fontSize: '11px', color: '#64748B', lineHeight: 1.6, textAlign: 'center', wordBreak: 'keep-all' }}>
+                                    수요반응(DR)은 실명제 기반의 서비스 입니다.<br />
+                                    지구방 앱을 통해 온라인으로 간편하게 신청할 수 있습니다.
+                                </p>
+                                <button 
+                                    onClick={() => setShowAgreementDetail(true)}
+                                    style={{ width: '80%', height: '38px', border: '1.2px solid #00A8FF', borderRadius: '10px', backgroundColor: 'transparent', color: '#00A8FF', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                                >
+                                    신청 동의서 자세히 보기
+                                </button>
+                            </div>
+
+                            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                                <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', marginBottom: '8px' }}>
+                                    참여에 동의하시면 아래에 서명해 주세요
+                                </h4>
+                            </div>
+
+                            <div style={{ position: 'relative', width: '100%', height: '180px', border: '1.5px solid #C5E2F6', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#FAFAFA' }}>
+                                <canvas
+                                    ref={canvasRef}
+                                    width={340}
+                                    height={180}
+                                    onMouseDown={startDrawing}
+                                    onMouseMove={draw}
+                                    onMouseUp={stopDrawing}
+                                    onMouseLeave={stopDrawing}
+                                    onTouchStart={startDrawing}
+                                    onTouchMove={draw}
+                                    onTouchEnd={stopDrawing}
+                                    style={{ display: 'block', width: '100%', height: '100%', cursor: 'crosshair', touchAction: 'none' }}
+                                />
+                                {!hasSigned && (
+                                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', color: '#94A3B8', fontSize: '12px', fontWeight: 500 }}>
+                                        여기를 터치해 서명해 주세요
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: '#334155' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={agreedTerms} 
+                                        onChange={(e) => setAgreedTerms(e.target.checked)}
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                    약관 동의 및 신청 정보를 위임 발송합니다.
+                                </label>
+                            </div>
+                        </main>
+
+                        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 20px 24px 20px', backgroundColor: '#FFFFFF', borderTop: '1px solid #F1F5F9', zIndex: 100, display: 'flex', gap: '10px' }}>
+                            <button 
+                                onClick={clearCanvas}
+                                style={{ flex: 1, height: '50px', border: 'none', borderRadius: '12px', backgroundColor: '#E5E5E5', color: '#64748B', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                서명 초기화
+                            </button>
+                            <button 
+                                onClick={handleJoinSubmit}
+                                style={{ 
+                                    flex: 2, 
+                                    height: '50px', 
+                                    border: 'none', 
+                                    borderRadius: '12px', 
+                                    backgroundColor: (agreedTerms && hasSigned) ? '#00A8FF' : '#E5E5E5', 
+                                    color: (agreedTerms && hasSigned) ? '#FFFFFF' : '#94A3B8', 
+                                    fontSize: '14px', 
+                                    fontWeight: 800, 
+                                    cursor: (agreedTerms && hasSigned) ? 'pointer' : 'not-allowed'
+                                }}
+                            >
+                                신청하기
+                            </button>
+                        </div>
+
+                        <BottomNav />
+                    </>
+                )
+            )}
+
+            {/* 3. TAB: points (나의 DR 포인트 상세 페이지 - Page 8) */}
+            {activeTab === 'points' && (
+                <>
+                    <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                        <button className="back-btn" onClick={() => navigate(-1)}>
+                            <span>‹</span>
+                        </button>
+                        <h2>나의 DR 포인트</h2>
+                        <div className="header-placeholder"></div>
+                    </header>
+
+                    <main className="app-content dr-content" style={{ padding: '20px' }}>
+                        {/* Core Point Blue Card */}
+                        <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(0, 114, 255, 0.25)', marginBottom: '20px' }}>
+                            <span style={{ fontSize: '12px', opacity: 0.9 }}>통합 보유 포인트</span>
+                            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
+                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900 }}>{(drSummary?.totalPoints || 15600).toLocaleString()}</span>
+                                <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Point</span>
+                            </div>
+                            <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '10px' }}>
+                                누적 적립 {((drSummary?.totalPoints || 15600) + 12000).toLocaleString()} P · 누적 사용 12,000 P
+                            </div>
+                        </div>
+
+                        {/* Filter chip switcher */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                            <button 
+                                onClick={() => setPointFilter('all')}
+                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: pointFilter === 'all' ? '#0072FF' : '#E2E8F0', color: pointFilter === 'all' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                            >
+                                전체
+                            </button>
+                            <button 
+                                onClick={() => setPointFilter('earn')}
+                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: pointFilter === 'earn' ? '#0072FF' : '#E2E8F0', color: pointFilter === 'earn' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                            >
+                                적립
+                            </button>
+                            <button 
+                                onClick={() => setPointFilter('use')}
+                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: pointFilter === 'use' ? '#0072FF' : '#E2E8F0', color: pointFilter === 'use' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                            >
+                                사용
+                            </button>
+                        </div>
+
+                        {/* Transactions Timeline */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {mockPointTransactions
+                                .filter(item => pointFilter === 'all' || item.type === pointFilter)
+                                .map(item => (
+                                    <div key={item.id} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <strong style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>{item.title}</strong>
+                                            <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.date}</span>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span className="number-font" style={{ fontSize: '16px', fontWeight: 900, color: item.change > 0 ? '#10B981' : '#EF4444' }}>
+                                                {item.change > 0 ? `+${item.change.toLocaleString()}` : item.change.toLocaleString()} P
+                                            </span>
+                                            <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>잔액: {item.balance.toLocaleString()}P</div>
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
+                    </main>
+                    <BottomNav />
                 </>
             )}
 
-            {/* 💡 가이드 모달 */}
+            {/* 4. TAB: shop (기프티콘 포인트 쇼핑 뷰 - Page 9) */}
+            {activeTab === 'shop' && (
+                <>
+                    <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                        <button className="back-btn" onClick={() => navigate(-1)}>
+                            <span>‹</span>
+                        </button>
+                        <h2>포인트 쇼핑</h2>
+                        <div className="header-placeholder"></div>
+                    </header>
+
+                    <main className="app-content dr-content" style={{ padding: '16px' }}>
+                        
+                        {/* Point Bal summary */}
+                        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>나의 보유 포인트</span>
+                            <strong className="number-font" style={{ fontSize: '15px', color: '#0072FF' }}>{(drSummary?.totalPoints || 15600).toLocaleString()} P</strong>
+                        </div>
+
+                        {/* Product Grid Catalog (Page 9) */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            {mockProducts.map(product => (
+                                <div 
+                                    key={product.id} 
+                                    className="card product-card-item" 
+                                    onClick={() => setSelectedProduct(product)}
+                                    style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}
+                                >
+                                    <div style={{ height: '110px', backgroundColor: '#F8FAFC', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                        <img src={product.image} alt={product.name} style={{ height: '70%', width: 'auto', objectFit: 'contain' }} />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>{product.provider}</span>
+                                        <strong style={{ fontSize: '12px', fontWeight: 800, color: '#1E293B', height: '32px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: '1.3' }}>{product.name}</strong>
+                                        <span className="number-font" style={{ fontSize: '13px', fontWeight: 900, color: '#0072FF', marginTop: '4px' }}>{product.price.toLocaleString()} P</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                    </main>
+                    <BottomNav />
+                </>
+            )}
+
+            {/* 💡 쇼핑 상세 교환 확인 팝업 모달 (Page 12) */}
+            {selectedProduct && (
+                <div className="modal-overlay animated-fade-in" onClick={() => setSelectedProduct(null)} style={{ zIndex: 11000 }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ padding: '24px', maxWidth: '320px', textAlign: 'center' }}>
+                        
+                        <div style={{ width: '80px', height: '80px', margin: '0 auto 12px auto', backgroundColor: '#F8FAFC', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img src={selectedProduct.image} alt={selectedProduct.name} style={{ width: '60%', height: 'auto', objectFit: 'contain' }} />
+                        </div>
+
+                        <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 700 }}>{selectedProduct.provider}</span>
+                        <h4 style={{ margin: '4px 0 12px 0', fontSize: '14px', fontWeight: 900, color: '#1E293B' }}>{selectedProduct.name}</h4>
+                        
+                        <div style={{ backgroundColor: '#F8FAFC', borderRadius: '12px', padding: '12px', fontSize: '12px', color: '#475569', marginBottom: '20px' }}>
+                            <span>차감 포인트 : </span>
+                            <strong className="number-font" style={{ color: '#EF4444', fontWeight: 800 }}>{selectedProduct.price.toLocaleString()} P</strong>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                                onClick={() => setSelectedProduct(null)}
+                                style={{ flex: 1, height: '42px', border: '1px solid #CBD5E1', borderRadius: '10px', backgroundColor: '#FFFFFF', color: '#64748B', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                                취소
+                            </button>
+                            <button 
+                                onClick={handleProductExchange}
+                                style={{ flex: 1.5, height: '42px', border: 'none', borderRadius: '10px', backgroundColor: '#0072FF', color: 'white', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                교환하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 🎉 쇼핑 교환 성공 완료 모달 */}
+            {showShopSuccess && (
+                <div className="modal-overlay animated-fade-in" style={{ zIndex: 12000 }}>
+                    <div className="modal-content" style={{ padding: '32px 24px', maxWidth: '300px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '42px', marginBottom: '12px' }}>✔️</div>
+                        <h3 style={{ margin: '0 0 6px 0', fontSize: '17px', fontWeight: 900 }}>교환 신청 완료!</h3>
+                        <p style={{ margin: '0 0 20px 0', fontSize: '12px', color: '#64748B', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+                            상품 PIN 코드가 문자로 전송되었습니다. 이용해주셔서 감사합니다!
+                        </p>
+                        <button 
+                            onClick={closeShopSuccess}
+                            style={{ width: '100%', height: '44px', border: 'none', borderRadius: '10px', backgroundColor: '#3B82F6', color: 'white', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                            확인
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* 💡 동의서 자세히 보기 팝업 모달 */}
+            {showAgreementDetail && (
+                <div className="modal-overlay animated-fade-in" onClick={() => setShowAgreementDetail(false)} style={{ zIndex: 11000 }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '380px', maxHeight: '80vh', overflowY: 'auto', padding: '24px' }}>
+                        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900 }}>광명/국민/경남 DR 참여 신청 동의서</h3>
+                            <button onClick={() => setShowAgreementDetail(false)} style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#475569', lineHeight: 1.6, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <strong>[수요관리사업 참여를 위한 개인정보 제공 동의서]</strong>
+                            <p style={{ margin: 0 }}>본인은 전력거래소 및 지자체가 운영하는 전력절감 수요반응(DR) 서비스에 참여하기 위하여, 아래와 같이 개인정보(이름, 연락처, 원격 AMI 검침값 및 식별 hoSeq)의 수집 및 위탁 제공에 동의합니다.</p>
+                            <p style={{ margin: 0 }}>1. 정보 제공받는 자: 전력거래소, 해당 지자체, 운영사 (주)에너넷</p>
+                            <p style={{ margin: 0 }}>2. 정보 이용 목적: 전력량 모니터링, 절전 실천 검증 및 성공 포인트 적립 정산</p>
+                            <p style={{ margin: 0 }}>3. 정보 보유 및 이용 기간: 가입일로부터 3년 혹은 탈퇴 시 즉시 파기</p>
+                        </div>
+                        <button 
+                            onClick={() => setShowAgreementDetail(false)}
+                            style={{ width: '100%', height: '44px', border: 'none', borderRadius: '12px', backgroundColor: '#00A8FF', color: 'white', fontSize: '13px', fontWeight: 800, cursor: 'pointer', marginTop: '20px' }}
+                        >
+                            동의서 내용 확인 완료
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* 💡 가이드북 모달 */}
             {showGuide && (
                 <div className="modal-overlay animated-fade-in" onClick={() => setShowGuide(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -790,82 +1006,22 @@ const DrHistoryPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Mission Detail popup */}
-            {selectedMission && (
-                <div className="modal-overlay animated-fade-in" onClick={() => setSelectedMission(null)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>DR 미션 상세</h3>
-                            <button className="close-modal-btn" onClick={() => setSelectedMission(null)}>&times;</button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="detail-status">
-                                {getStatusBadge(selectedMission.status)}
-                                <span className="detail-type">{selectedMission.type}</span>
-                            </div>
-                            <h4 className="detail-title">{selectedMission.title}</h4>
-                            
-                            <div className="detail-info-table">
-                                <div className="detail-info-row">
-                                    <span className="label">일정</span>
-                                    <span className="value">{selectedMission.date} {selectedMission.time}</span>
-                                </div>
-                                <div className="detail-info-row">
-                                    <span className="label">목표 감축량</span>
-                                    <span className="value bold">{selectedMission.targetReduction}</span>
-                                </div>
-                                <div className="detail-info-row">
-                                    <span className="label">리워드 포인트</span>
-                                    <span className="value highlight number-font">{selectedMission.points.toLocaleString()} P</span>
-                                </div>
-                            </div>
-
-                            <p className="detail-guideline" style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: '1.6', margin: 0 }}>
-                                * 발령 시간 동안 사용하지 않는 대기전력을 차단하고 전등을 꺼주시면 미션 성공 확률이 올라갑니다.
-                            </p>
-                        </div>
-                        <div className="modal-footer" style={{ display: 'flex', gap: '8px' }}>
-                            <button className="modal-action-btn secondary" onClick={() => setSelectedMission(null)} style={{ width: '100%' }}>닫기</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 🎉 축하 팝업 모달 (Success Celebration Dialog) */}
+            {/* 🎉 축하 팝업 모달 */}
             {showSuccessPopup && (
                 <div className="modal-overlay animated-fade-in" style={{ zIndex: 12000 }}>
                     <div className="modal-content" style={{ textAlign: 'center', padding: '32px 24px', maxWidth: '320px' }}>
-                        
-                        {/* Celebrate Character Mascot */}
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-                            <img 
-                                src="/image/char_05.png" 
-                                alt="Celebrating Mascot" 
-                                style={{ width: '110px', height: '110px', objectFit: 'contain' }}
-                                onError={(e) => { (e.target as HTMLImageElement).src = '/image/char_02.png'; }}
-                            />
+                            <img src="/image/char_05.png" alt="Celebrating" style={{ width: '110px', height: '110px', objectFit: 'contain' }} />
                         </div>
-
                         <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0F172A', margin: '0 0 8px 0' }}>
                             축하드려요!
                         </h3>
                         <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.5, margin: '0 0 24px 0', wordBreak: 'keep-all' }}>
                             수요반응 신청이 완료되었습니다.
                         </p>
-
                         <button 
                             onClick={closeSuccessPopup}
-                            style={{ 
-                                width: '100%', 
-                                height: '48px', 
-                                border: 'none', 
-                                borderRadius: '12px', 
-                                backgroundColor: '#3B82F6', 
-                                color: '#FFFFFF', 
-                                fontSize: '14px', 
-                                fontWeight: 800, 
-                                cursor: 'pointer' 
-                            }}
+                            style={{ width: '100%', height: '48px', border: 'none', borderRadius: '12px', backgroundColor: '#3B82F6', color: '#FFFFFF', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
                         >
                             확인
                         </button>

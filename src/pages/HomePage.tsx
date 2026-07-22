@@ -443,7 +443,7 @@ const HomePage: React.FC = () => {
                             </div>
                         ) : (
                             /* Card 2: 나의 DR 포인트 */
-                            <div className="card data-slider-card dr-points-card">
+                            <div className="card data-slider-card dr-points-card" onClick={() => navigate('/dr-history?tab=points')} style={{ cursor: 'pointer' }}>
                                 <div className="card-top">
                                     <div className="card-top-left">
                                         <span className="energy-icon">⭐</span>
@@ -501,7 +501,7 @@ const HomePage: React.FC = () => {
                     </div>
                     
                     <div className="campaign-list">
-                        <div className="card campaign-item" onClick={() => navigate('/dr-history')}>
+                        <div className="card campaign-item" onClick={() => navigate('/dr-history?tab=active')}>
                             <div className="campaign-icon-box blue-bg">DR</div>
                             <div className="campaign-info">
                                 <h4 className="campaign-name">수요반응 (Demand Response)</h4>
@@ -510,7 +510,7 @@ const HomePage: React.FC = () => {
                             <span className="campaign-arrow">›</span>
                         </div>
 
-                        <div className="card campaign-item" onClick={() => navigate('/dr-history')}>
+                        <div className="card campaign-item" onClick={() => navigate('/dr-history?tab=join-status')}>
                             <div className="campaign-icon-box green-bg">국민</div>
                             <div className="campaign-info">
                                 <h4 className="campaign-name">국민DR (에너지쉼표)</h4>
@@ -519,7 +519,7 @@ const HomePage: React.FC = () => {
                             <span className="campaign-arrow">›</span>
                         </div>
 
-                        <div className="card campaign-item" onClick={() => navigate('/dr-history')}>
+                        <div className="card campaign-item" onClick={() => navigate('/dr-history?tab=join-status')}>
                             <div className="campaign-icon-box orange-bg">경남</div>
                             <div className="campaign-info">
                                 <h4 className="campaign-name">경남DR</h4>
