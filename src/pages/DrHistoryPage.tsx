@@ -337,10 +337,21 @@ const DrHistoryPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 2 }}>
                         <div className="dr-welcome-top" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className="live-pulse" style={{ background: '#FF5252', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '20px', fontWeight: 800 }}>🔴 LIVE</span>
-                            <span className="dr-count-label" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.9)' }}>오늘의 DR 발령 <strong>{activeIssue ? '3회' : '2회'}</strong></span>
+                            <span className="dr-count-label" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.9)' }}>오늘의 DR 발령 <strong>{activeIssue ? '진행 중' : '대기 중'}</strong></span>
                         </div>
                         <div className="dr-welcome-main" style={{ fontSize: '20px', fontWeight: 800, color: 'white', lineHeight: '1.4' }}>
-                            잠깐의 절전으로<br />지구를 지켜 볼까요?
+                            {activeIssue ? (
+                                <>
+                                    지금은 절전 시간!<br />
+                                    <span style={{ fontSize: '13px', fontWeight: 700, backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '6px', marginTop: '6px', display: 'inline-block' }}>
+                                        ⏱️ {formatTime(activeIssue.startAt)} ~ {formatTime(activeIssue.endAt)} ({activeIssue.successPoint || 1000}P)
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    잠깐의 절전으로<br />지구를 지켜 볼까요?
+                                </>
+                            )}
                         </div>
                     </div>
                     <img 
@@ -388,11 +399,11 @@ const DrHistoryPage: React.FC = () => {
                 </div>
 
                 {/* DR 프로그램 가입 카드 */}
-                <div className="dr-programs-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                <div className="dr-programs-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px', position: 'relative' }}>
                     <h3 className="dr-section-title" style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-dark)', margin: 0 }}>가입 중인 DR 프로그램</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', zIndex: 2 }}>
                         {/* 1. 국민DR 카드 */}
-                        <div className="card dr-program-card" style={{ display: 'flex', flexDirection: 'column', padding: '16px', borderRadius: '20px', backgroundColor: '#FFFFFF', border: '1px solid #F0F0F0', gap: '10px', position: 'relative' }}>
+                        <div className="card dr-program-card" style={{ display: 'flex', flexDirection: 'column', padding: '16px', borderRadius: '20px', backgroundColor: '#FFFFFF', border: '1px solid #F0F0F0', gap: '10px', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ fontSize: '16px', backgroundColor: '#EFF6FF', padding: '6px', borderRadius: '10px' }}>🇰🇷</span>
                                 <strong style={{ fontSize: '13px', fontWeight: 800, color: 'var(--color-text-dark)' }}>국민DR (쉼표)</strong>
@@ -416,7 +427,7 @@ const DrHistoryPage: React.FC = () => {
                         </div>
 
                         {/* 2. 경남DR 카드 */}
-                        <div className="card dr-program-card" style={{ display: 'flex', flexDirection: 'column', padding: '16px', borderRadius: '20px', backgroundColor: '#FFFFFF', border: '1px solid #F0F0F0', gap: '10px', position: 'relative' }}>
+                        <div className="card dr-program-card" style={{ display: 'flex', flexDirection: 'column', padding: '16px', borderRadius: '20px', backgroundColor: '#FFFFFF', border: '1px solid #F0F0F0', gap: '10px', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ fontSize: '16px', backgroundColor: '#ECFDF5', padding: '6px', borderRadius: '10px' }}>🍊</span>
                                 <strong style={{ fontSize: '13px', fontWeight: 800, color: 'var(--color-text-dark)' }}>경남DR</strong>
@@ -439,92 +450,116 @@ const DrHistoryPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <img src="/images/char_02.png" alt="Mascot" style={{ position: 'absolute', right: '16px', bottom: '-10px', width: '75px', height: '75px', objectFit: 'contain', zIndex: 1 }} />
+                    {/* Fixed mascot image path to /image/char_02.png */}
+                    <img 
+                        src="/image/char_02.png" 
+                        alt="Mascot" 
+                        style={{ position: 'absolute', right: '-4px', bottom: '-8px', width: '70px', height: '70px', objectFit: 'contain', zIndex: 1 }} 
+                    />
                 </div>
 
-                {/* Cumulative Stats Dashboard */}
-                <div className="card dr-dashboard-card" style={{ padding: '20px', borderRadius: '24px', border: '1px solid #F0F0F0', backgroundColor: '#FFFFFF', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                    <h3 className="dr-card-title" style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-dark)', margin: '0 0 16px 0' }}>나의 DR 참여 통계</h3>
-                    
-                    <div className="dr-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                        <div className="dr-stat-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '16px', gap: '6px' }}>
-                            <span className="dr-box-label" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>누적 참여</span>
-                            <div className="dr-box-value" style={{ display: 'flex', alignItems: 'baseline', fontWeight: 800 }}>
-                                <span className="number-font val" style={{ fontSize: '20px' }}>{totalParticipation}</span>
-                                <span className="unit" style={{ fontSize: '10px', marginLeft: '2px', color: 'var(--color-text-muted)' }}>회</span>
-                            </div>
-                        </div>
-                        <div className="dr-stat-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '16px', gap: '6px' }}>
-                            <span className="dr-box-label" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>누적 성공</span>
-                            <div className="dr-box-value green-color" style={{ display: 'flex', alignItems: 'baseline', fontWeight: 800, color: 'var(--color-success)' }}>
-                                <span className="number-font val" style={{ fontSize: '20px' }}>{totalSuccess}</span>
-                                <span className="unit" style={{ fontSize: '10px', marginLeft: '2px', color: 'var(--color-text-muted)' }}>회</span>
-                            </div>
-                        </div>
-                        <div className="dr-stat-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '16px', gap: '6px' }}>
-                            <span className="dr-box-label" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>평균 성공률</span>
-                            <div className="dr-box-value blue-color" style={{ display: 'flex', alignItems: 'baseline', fontWeight: 800, color: 'var(--color-primary-dark)' }}>
-                                <span className="number-font val" style={{ fontSize: '20px' }}>{successRate}</span>
-                                <span className="unit" style={{ fontSize: '10px', marginLeft: '2px', color: 'var(--color-text-muted)' }}>%</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="dr-summary-strip" style={{ display: 'flex', justifyContent: 'space-around', borderTop: '1px solid #F0F0F0', marginTop: '16px', paddingTop: '16px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                        <span>참여 중 <strong>{drChallenges.filter(c => c.status === 'participating').length}개</strong></span>
-                        <span>신청 가능 <strong>{drChallenges.filter(c => c.status === 'available').length}개</strong></span>
-                        <span>성공 완료 <strong>{totalSuccess}개</strong></span>
-                    </div>
-                </div>
-
-                {/* Challenge List section */}
-                <div className="dr-list-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <h3 className="dr-section-title" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-dark)', margin: 0 }}>DR 미션 리스트</h3>
-                    
-                    <div className="dr-list-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {drChallenges.length > 0 ? (
-                            drChallenges.map((challenge) => (
-                                <div 
-                                    key={challenge.id} 
-                                    className={`card dr-challenge-item ${challenge.status === 'failed' ? 'dimmed' : ''}`}
-                                    onClick={() => setSelectedMission(challenge)}
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        padding: '16px 20px',
-                                        borderRadius: '20px',
-                                        backgroundColor: '#FFFFFF',
-                                        border: '1px solid #F0F0F0',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.01)',
-                                        opacity: challenge.status === 'failed' ? 0.7 : 1
-                                    }}
-                                >
-                                    <div className="challenge-left" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <div className="badge-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {getStatusBadge(challenge.status)}
-                                            <span className="chal-type" style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{challenge.type}</span>
-                                        </div>
-                                        <div className="chal-title" style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-dark)' }}>{challenge.title}</div>
-                                        <div className="chal-time" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{challenge.date} | {challenge.time}</div>
-                                    </div>
-
-                                    <div className="challenge-right" style={{ display: 'flex', alignItems: 'baseline', gap: '2px', fontWeight: 800 }}>
-                                        <span className={`points-val number-font ${challenge.status === 'success' || challenge.status === 'participating' ? 'green-color' : ''}`} style={{ fontSize: '18px', color: challenge.status === 'success' || challenge.status === 'participating' ? 'var(--color-success)' : 'var(--color-text-dark)' }}>
-                                            {challenge.status === 'failed' ? '0' : `+${challenge.points.toLocaleString()}`}
-                                        </span>
-                                        <span className="points-unit" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>P</span>
+                {/* 2. DR 가입 여부에 따른 통계 및 리스트 노출 제어 */}
+                {drCards?.isHouseholdsKpxDr || drCards?.isHouseholdsGyeongnamDr ? (
+                    <>
+                        {/* Cumulative Stats Dashboard */}
+                        <div className="card dr-dashboard-card" style={{ padding: '20px', borderRadius: '24px', border: '1px solid #F0F0F0', backgroundColor: '#FFFFFF', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                            <h3 className="dr-card-title" style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-dark)', margin: '0 0 16px 0' }}>나의 DR 참여 통계</h3>
+                            
+                            <div className="dr-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                                <div className="dr-stat-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '16px', gap: '6px' }}>
+                                    <span className="dr-box-label" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>누적 참여</span>
+                                    <div className="dr-box-value" style={{ display: 'flex', alignItems: 'baseline', fontWeight: 800 }}>
+                                        <span className="number-font val" style={{ fontSize: '20px' }}>{totalParticipation}</span>
+                                        <span className="unit" style={{ fontSize: '10px', marginLeft: '2px', color: 'var(--color-text-muted)' }}>회</span>
                                     </div>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="no-data-display" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid #F0F0F0' }}>
-                                참여 가능한 활성 DR 미션이나 과거 참여 이력이 없습니다.
+                                <div className="dr-stat-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '16px', gap: '6px' }}>
+                                    <span className="dr-box-label" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>누적 성공</span>
+                                    <div className="dr-box-value green-color" style={{ display: 'flex', alignItems: 'baseline', fontWeight: 800, color: 'var(--color-success)' }}>
+                                        <span className="number-font val" style={{ fontSize: '20px' }}>{totalSuccess}</span>
+                                        <span className="unit" style={{ fontSize: '10px', marginLeft: '2px', color: 'var(--color-text-muted)' }}>회</span>
+                                    </div>
+                                </div>
+                                <div className="dr-stat-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '16px', gap: '6px' }}>
+                                    <span className="dr-box-label" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>평균 성공률</span>
+                                    <div className="dr-box-value blue-color" style={{ display: 'flex', alignItems: 'baseline', fontWeight: 800, color: 'var(--color-primary-dark)' }}>
+                                        <span className="number-font val" style={{ fontSize: '20px' }}>{successRate}</span>
+                                        <span className="unit" style={{ fontSize: '10px', marginLeft: '2px', color: 'var(--color-text-muted)' }}>%</span>
+                                    </div>
+                                </div>
                             </div>
-                        )}
+
+                            <div className="dr-summary-strip" style={{ display: 'flex', justifyContent: 'space-around', borderTop: '1px solid #F0F0F0', marginTop: '16px', paddingTop: '16px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                <span>참여 중 <strong>{drChallenges.filter(c => c.status === 'participating').length}개</strong></span>
+                                <span>신청 가능 <strong>{drChallenges.filter(c => c.status === 'available').length}개</strong></span>
+                                <span>성공 완료 <strong>{totalSuccess}개</strong></span>
+                            </div>
+                        </div>
+
+                        {/* Challenge List section */}
+                        <div className="dr-list-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <h3 className="dr-section-title" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-text-dark)', margin: 0 }}>DR 미션 리스트</h3>
+                            
+                            <div className="dr-list-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {drChallenges.length > 0 ? (
+                                    drChallenges.map((challenge) => (
+                                        <div 
+                                            key={challenge.id} 
+                                            className={`card dr-challenge-item ${challenge.status === 'failed' ? 'dimmed' : ''}`}
+                                            onClick={() => setSelectedMission(challenge)}
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '16px 20px',
+                                                borderRadius: '20px',
+                                                backgroundColor: '#FFFFFF',
+                                                border: '1px solid #F0F0F0',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.01)',
+                                                opacity: challenge.status === 'failed' ? 0.7 : 1
+                                            }}
+                                        >
+                                            <div className="challenge-left" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <div className="badge-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {getStatusBadge(challenge.status)}
+                                                    <span className="chal-type" style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{challenge.type}</span>
+                                                </div>
+                                                <div className="chal-title" style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-dark)' }}>{challenge.title}</div>
+                                                <div className="chal-time" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{challenge.date} | {challenge.time}</div>
+                                            </div>
+
+                                            <div className="challenge-right" style={{ display: 'flex', alignItems: 'baseline', gap: '2px', fontWeight: 800 }}>
+                                                <span className={`points-val number-font ${challenge.status === 'success' || challenge.status === 'participating' ? 'green-color' : ''}`} style={{ fontSize: '18px', color: challenge.status === 'success' || challenge.status === 'participating' ? 'var(--color-success)' : 'var(--color-text-dark)' }}>
+                                                    {challenge.status === 'failed' ? '0' : `+${challenge.points.toLocaleString()}`}
+                                                </span>
+                                                <span className="points-unit" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>P</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="no-data-display" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid #F0F0F0' }}>
+                                        참여 가능한 활성 DR 미션이나 과거 참여 이력이 없습니다.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    /* 미가입자를 위한 미 가입 안내 웰컴 카드 (Empty state) */
+                    <div className="card dr-nonjoined-placeholder" style={{ padding: '30px 20px', borderRadius: '24px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                        <span style={{ fontSize: '36px' }}>📝</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <strong style={{ fontSize: '15px', fontWeight: 800, color: '#1E293B' }}>아직 DR에 가입하지 않으셨습니다</strong>
+                            <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.6', margin: 0, maxWidth: '280px' }}>
+                                전력거래소 또는 지자체 DR 프로그램에 가입 신청하시면 절전 미션 정보와 리워드 획득 이력을 한눈에 볼 수 있습니다.
+                            </p>
+                        </div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: '#3B82F6', backgroundColor: '#EFF6FF', padding: '6px 12px', borderRadius: '20px' }}>
+                            💡 위 신청하기 버튼을 눌러 서명을 마치시면 즉시 가입됩니다!
+                        </div>
                     </div>
-                </div>
+                )}
             </main>
 
             {/* BottomNav */}
