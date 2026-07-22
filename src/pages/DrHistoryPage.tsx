@@ -89,6 +89,20 @@ const DrHistoryPage: React.FC = () => {
         refreshData();
     }, [refreshData]);
 
+    // Adjust canvas resolution dynamically based on parent container width
+    useEffect(() => {
+        if (joinStep === 'agreement' && canvasRef.current) {
+            const canvas = canvasRef.current;
+            canvas.width = canvas.parentElement?.clientWidth || 340;
+            canvas.height = 180;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.fillStyle = '#FAFAFA';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+    }, [joinStep]);
+
     // Canvas drawing event handlers
     const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
