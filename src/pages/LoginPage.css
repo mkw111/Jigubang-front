@@ -1,0 +1,273 @@
+/* LoginPage.css - 100% Matching with Figma Mockup (dr_design_capture.png) */
+
+.login-page-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    background-color: #FFFFFF;
+    box-sizing: border-box;
+    overflow-y: auto;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* 1. Waves Top Sky-blue Background */
+.login-top-background {
+    position: relative;
+    width: 100%;
+    height: 38vh;
+    background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Figma topography lines background effect using CSS gradient ripples */
+.login-top-background::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    opacity: 0.15;
+    background-image: radial-gradient(circle, transparent 30%, rgba(255,255,255,0.4) 31%, transparent 32%, rgba(255,255,255,0.3) 33%, transparent 40%);
+    background-size: 80px 80px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Beautiful wave boundary curve mimicking figma bottom slope */
+.login-top-background::after {
+    content: '';
+    position: absolute;
+    bottom: -160px;
+    left: -20%;
+    width: 140%;
+    height: 240px;
+    background: #FFFFFF;
+    border-radius: 50% / 120px 120px 0 0;
+    z-index: 2;
+}
+
+/* 2. Pure White Mascot Logo Branding */
+.login-brand-logo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    gap: 8px;
+    margin-top: -20px;
+}
+
+.login-brand-logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    filter: brightness(0) invert(1); /* Forces any mascot PNG to purely white branding line-art! */
+}
+
+.login-brand-title {
+    font-size: 26px;
+    font-weight: 900;
+    color: #FFFFFF;
+    margin: 0;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.login-brand-subtitle {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+/* 3. White Form Card container */
+.login-form-card-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 0 28px 40px 28px;
+    box-sizing: border-box;
+    z-index: 4;
+    background-color: #FFFFFF;
+    flex: 1;
+}
+
+/* Title Section & Sign in underline decors */
+.signin-header-row {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 28px;
+    margin-top: 10px;
+}
+
+.signin-title-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.signin-main-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #1E293B;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.signin-line-decoration {
+    width: 42px;
+    height: 4px;
+    background-color: #00A8FF;
+    border-radius: 2px;
+    margin-top: 6px;
+}
+
+/* 4. Speech guide bubble for mock logs */
+.login-success-guide-bubble {
+    position: absolute;
+    right: 0;
+    bottom: 12px;
+    background-color: #000000;
+    color: #FFFFFF;
+    font-size: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    line-height: 1.4;
+    text-align: left;
+    white-space: pre-line;
+    z-index: 10;
+    font-weight: 500;
+}
+
+.login-success-guide-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    right: 32px;
+    border-width: 6px 6px 0;
+    border-style: solid;
+    border-color: #000000 transparent;
+    display: block;
+    width: 0;
+}
+
+/* 5. Input group styling */
+.login-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.login-field-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.login-field-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748B;
+    padding-left: 2px;
+}
+
+.login-field-input {
+    height: 52px;
+    border: 1.5px solid #00A8FF;
+    border-radius: 12px;
+    padding: 0 16px;
+    font-size: 14px;
+    color: #1E293B;
+    background-color: #FFFFFF;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.login-field-input::placeholder {
+    color: #94A3B8;
+}
+
+.login-field-input:focus {
+    outline: none;
+    border-color: #0072FF;
+    box-shadow: 0 0 0 3px rgba(0, 168, 255, 0.12);
+}
+
+/* 6. Form menus (Find pwd, register link) */
+.login-menu-strip {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: #64748B;
+}
+
+.login-menu-item {
+    cursor: pointer;
+    font-weight: 700;
+    transition: color 0.2s ease;
+}
+
+.login-menu-item.highlight {
+    color: #0072FF;
+}
+
+.login-menu-divider {
+    width: 1.2px;
+    height: 12px;
+    background-color: #CBD5E1;
+}
+
+/* 7. Action submit button */
+.login-submit-button {
+    width: 100%;
+    height: 52px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.login-submit-button.disabled {
+    background-color: #E2E8F0;
+    color: #94A3B8;
+    cursor: not-allowed;
+}
+
+.login-submit-button.active {
+    background-color: #00A8FF;
+    color: #FFFFFF;
+    box-shadow: 0 6px 20px rgba(0, 168, 255, 0.25);
+}
+
+.login-submit-button.active:active {
+    transform: scale(0.98);
+}
+
+/* 8. Footer copy */
+.login-footer-copy {
+    margin-top: auto;
+    padding-top: 30px;
+    text-align: center;
+    font-size: 11px;
+    color: #94A3B8;
+    letter-spacing: 0.5px;
+}

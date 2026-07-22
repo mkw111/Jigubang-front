@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import './LandingPage.css';
+import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -52,7 +52,6 @@ const LoginPage: React.FC = () => {
 
     const handleLogin = async () => {
         if (!phoneNumber || !password) {
-            alert('전화번호와 비밀번호를 모두 입력해주세요.');
             return;
         }
 
@@ -87,8 +86,6 @@ const LoginPage: React.FC = () => {
                 }
 
                 await handleLoginSuccess(res.data);
-            }else{ //200이 아닐경우
-
             }
         } catch (e: any) {
             console.error("Login failed:", e);
@@ -97,59 +94,96 @@ const LoginPage: React.FC = () => {
         }
     };
 
-    return (
-        <div className="page-container landing-wrapper" style={{ justifyContent: 'flex-start', padding: '40px 24px 20px 24px' }}>
-            <header className="app-header" style={{ width: '100%', background: 'none', border: 'none', padding: '10px 0' }}>
-                <button className="back-btn" onClick={() => navigate('/')}>
-                    <span style={{ fontSize: '24px' }}>‹</span>
-                </button>
-                <h2>로그인</h2>
-                <div className="header-placeholder"></div>
-            </header>
+    const isButtonActive = phoneNumber.trim().length > 0 && password.trim().length > 0;
 
-            <div className="logo-section" style={{ marginTop: '30px', marginBottom: '40px' }}>
-                <div className="logo-glow" style={{ width: '120px', height: '120px' }}></div>
-                <img src="/images/jigubang_3d.png" alt="Jigubang Logo" className="logo-img" style={{ width: '70px', height: '70px', objectFit: 'contain', zIndex: 2, marginBottom: '10px' }} />
-                <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-dark)', margin: 0 }}>Sign In</h2>
+    return (
+        <div className="login-page-container">
+            
+            {/* 1. Waves Top Sky-blue background */}
+            <div className="login-top-background">
+                <div className="login-brand-logo-section">
+                    <img 
+                        src="/images/jigubang_3d.png" 
+                        alt="Jigubang Mascot Line-art" 
+                        className="login-brand-logo"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/image/char_02.png';
+                        }}
+                    />
+                    <h1 className="login-brand-title">지구방</h1>
+                    <p className="login-brand-subtitle">지구를 구하는 방법</p>
+                </div>
             </div>
 
-            <div className="button-group" style={{ width: '100%' }}>
-                <div className="form-group">
-                    <label className="form-label">전화번호</label>
-                    <input 
-                        type="text" 
-                        placeholder="전화번호를 입력하세요" 
-                        value={phoneNumber} 
-                        onChange={e => setPhoneNumber(e.target.value)}
-                        className="form-input"
-                    />
-                </div>
-                <div className="form-group" style={{ marginBottom: '10px' }}>
-                    <label className="form-label">비밀번호</label>
-                    <input 
-                        type="password" 
-                        placeholder="비밀번호를 입력하세요" 
-                        value={password} 
-                        onChange={e => setPassword(e.target.value)}
-                        className="form-input"
-                    />
+            {/* 2. White Card Container */}
+            <div className="login-form-card-container">
+                
+                {/* Sign in header with black guide bubble */}
+                <div className="signin-header-row">
+                    <div className="signin-title-box">
+                        <h2 className="signin-main-title">Sign in</h2>
+                        <div className="signin-line-decoration"></div>
+                    </div>
+
+                    {/* Black speech bubble matching figma specification */}
+                    <div className="login-success-guide-bubble">
+                        로그인 성공(일반) : 1234{"\n"}
+                        로그인 성공(관리자) : 5678{"\n"}
+                        로그인 실패 : abcd
+                    </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', fontSize: '13px' }}>
-                    <span onClick={() => navigate('/reset-password')} style={{ color: 'var(--color-text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
+                {/* Input Fields */}
+                <div className="login-input-group">
+                    <div className="login-field-box">
+                        <label className="login-field-label">지구방 등록 전화번호</label>
+                        <input 
+                            type="text" 
+                            placeholder="'-' 없이 입력하세요" 
+                            value={phoneNumber} 
+                            onChange={e => setPhoneNumber(e.target.value)}
+                            className="login-field-input"
+                        />
+                    </div>
+
+                    <div className="login-field-box">
+                        <label className="login-field-label">비밀번호</label>
+                        <input 
+                            type="password" 
+                            placeholder="비밀번호를 입력하세요" 
+                            value={password} 
+                            onChange={e => setPassword(e.target.value)}
+                            className="login-field-input"
+                        />
+                    </div>
+                </div>
+
+                {/* Menu Strip (Find Password, Register) */}
+                <div className="login-menu-strip">
+                    <span className="login-menu-item" onClick={() => navigate('/reset-password')}>
                         비밀번호 찾기
                     </span>
-                    <span onClick={() => navigate('/join/apt')} style={{ color: 'var(--color-primary-dark)', cursor: 'pointer', fontWeight: '600' }}>
-                        회원가입 하기
+                    <div className="login-menu-divider"></div>
+                    <span className="login-menu-item highlight" onClick={() => navigate('/join/apt')}>
+                        회원가입
                     </span>
                 </div>
 
-                <button className="btn login-btn" onClick={handleLogin}>로그인 하기</button>
+                {/* Submit Action Button */}
+                <button 
+                    onClick={handleLogin}
+                    disabled={!isButtonActive}
+                    className={`login-submit-button ${isButtonActive ? 'active' : 'disabled'}`}
+                >
+                    로그인 하기
+                </button>
+
+                {/* Footer copyright */}
+                <footer className="login-footer-copy">
+                    © ENERNET Inc.
+                </footer>
             </div>
 
-            <footer className="footer" style={{ marginTop: 'auto', paddingTop: '20px' }}>
-                © ENERNET Inc.
-            </footer>
         </div>
     );
 };
