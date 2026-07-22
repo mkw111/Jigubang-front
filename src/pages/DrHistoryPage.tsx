@@ -18,6 +18,8 @@ const DrHistoryPage: React.FC = () => {
     const [activeIssue, setActiveIssue] = useState<any>(null);
     const [drSummary, setDrSummary] = useState<any>(null);
     const [drCards, setDrCards] = useState<any>(null);
+    const [points, setPoints] = useState<any>(null);
+    const [usedLogs, setUsedLogs] = useState<any[]>([]);
     const [recentMissions, setRecentMissions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -42,9 +44,16 @@ const DrHistoryPage: React.FC = () => {
     const [hasSigned, setHasSigned] = useState(false);
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
-    // Shop purchase states
+    // Shop purchase states & Insight detail modal state
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [showShopSuccess, setShowShopSuccess] = useState(false);
+    const [shopTab, setShopTab] = useState<'catalog' | 'coupons'>('catalog');
+    const [shopCategory, setShopCategory] = useState<number>(0);
+    const [purchasedCoupons, setPurchasedCoupons] = useState<any[]>([]);
+    const [lastIssuedPin, setLastIssuedPin] = useState<string>('');
+    const [apiGoodsList, setApiGoodsList] = useState<any[]>([]);
+    const [apiCategories, setApiCategories] = useState<any[]>([]);
+    const [selectedInsightItem, setSelectedInsightItem] = useState<any>(null);
 
     // Synchronize activeTab state with URL tab query string
     useEffect(() => {
@@ -75,11 +84,12 @@ const DrHistoryPage: React.FC = () => {
             headers['Authorization'] = `Bearer ${token}`;
         }
         try {
-            const [activeRes, summaryRes, cardsRes, recentRes] = await Promise.all([
+            const [activeRes, summaryRes, cardsRes, recentRes, pointsRes] = await Promise.all([
                 fetch(`/api/dr/active-issue`, { headers }),
                 fetch(`/api/dr/summary`, { headers }),
                 fetch(`/api/dr/cards`, { headers }),
-                fetch(`/api/dr/recent`, { headers })
+                fetch(`/api/dr/recent`, { headers }),
+                fetch(`/api/households/${user.hoSeq}/points`, { headers })
             ]);
             
             if (activeRes.ok && activeRes.status !== 204) {
@@ -96,12 +106,46 @@ const DrHistoryPage: React.FC = () => {
             if (recentRes.ok) {
                 setRecentMissions(await recentRes.json());
             }
+            if (pointsRes.ok) {
+                setPoints(await pointsRes.json());
+            }
+
+            // Fetch AS-IS Gift Goods & Categories
+            fetch(`/api/gift-goods`, { headers })
+                .then(res => res.ok ? res.json() : [])
+                .then(data => { if (Array.isArray(data) && data.length > 0) setApiGoodsList(data); });
+
+            fetch(`/api/gift-goods/categories`, { headers })
+                .then(res => res.ok ? res.json() : [])
+                .then(data => { if (Array.isArray(data) && data.length > 0) setApiCategories(data); });
         } catch (err) {
             console.error("Failed to load DR data", err);
         } finally {
             setLoading(false);
         }
     }, [user.hoSeq, user.token]);
+
+    // Load point usage history & purchased coupons from localStorage
+    useEffect(() => {
+        if (user.hoSeq) {
+            const savedLogsStr = localStorage.getItem(`point_used_logs_${user.hoSeq}`);
+            if (savedLogsStr) {
+                try {
+                    setUsedLogs(JSON.parse(savedLogsStr));
+                } catch (e) {
+                    console.error("Failed to parse point_used_logs", e);
+                }
+            }
+            const savedCouponsStr = localStorage.getItem(`purchased_coupons_${user.hoSeq}`);
+            if (savedCouponsStr) {
+                try {
+                    setPurchasedCoupons(JSON.parse(savedCouponsStr));
+                } catch (e) {
+                    console.error("Failed to parse purchased_coupons", e);
+                }
+            }
+        }
+    }, [user.hoSeq]);
 
     useEffect(() => {
         refreshData();
@@ -235,23 +279,134 @@ const DrHistoryPage: React.FC = () => {
         refreshData();
     };
 
-    // Mock products catalog
+    // Products catalog
     const mockProducts = [
-        { id: 1, name: '네이버페이 1만원권', provider: '네이버', price: 10000, image: '/image/image08.png' },
-        { id: 2, name: '투썸 아메리카노(R)', provider: '투썸플레이스', price: 4500, image: '/image/char_02.png' },
-        { id: 3, name: '스타벅스 아메리카노(Tall)', provider: '스타벅스', price: 4500, image: '/image/char_05.png' },
-        { id: 4, name: 'GS25 모바일 상품권 2천원권', provider: 'GS25', price: 2000, image: '/image/char_08.png' }
+        { id: 1, name: '네이버페이 1만원권', provider: '네이버', price: 10000, category: 'pay', image: '/image/image08.png' },
+        { id: 2, name: '네이버페이 5천원권', provider: '네이버', price: 5000, category: 'pay', image: '/image/image08.png' },
+        { id: 3, name: '신세계 모바일 상품권 1만원권', provider: '신세계', price: 10000, category: 'pay', image: '/image/char_08.png' },
+        { id: 4, name: '스타벅스 아메리카노(Tall)', provider: '스타벅스', price: 4500, category: 'cafe', image: '/image/char_05.png' },
+        { id: 5, name: '투썸 아메리카노(R)', provider: '투썸플레이스', price: 4500, category: 'cafe', image: '/image/char_02.png' },
+        { id: 6, name: '이디야 아메리카노', provider: '이디야', price: 3200, category: 'cafe', image: '/image/char_05.png' },
+        { id: 7, name: 'GS25 모바일 상품권 5천원권', provider: 'GS25', price: 5000, category: 'store', image: '/image/char_08.png' },
+        { id: 8, name: 'CU 모바일 상품권 3천원권', provider: 'CU', price: 3000, category: 'store', image: '/image/char_08.png' },
+        { id: 9, name: 'GS25 모바일 상품권 2천원권', provider: 'GS25', price: 2000, category: 'store', image: '/image/char_08.png' }
     ];
 
-    const handleProductExchange = () => {
+    // Dynamic Point Calculations & Usage Tracking
+    const totalUsedAmount = React.useMemo(() => {
+        return usedLogs.reduce((sum, item) => sum + (item.amount || 0), 0);
+    }, [usedLogs]);
+
+    const baseTotalPoints = React.useMemo(() => {
+        return points?.totalPoints ?? drCards?.totalPoint ?? 0;
+    }, [points, drCards]);
+
+    const currentTotalPoints = Math.max(0, baseTotalPoints - totalUsedAmount);
+    const totalEarnedPoints = baseTotalPoints;
+
+    const handleProductExchange = async () => {
         if (!selectedProduct) return;
-        const totalPoints = drCards?.totalPoint || 15600;
-        if (totalPoints < selectedProduct.price) {
-            alert('보유 포인트가 부족하여 교환할 수 없습니다.');
+        const price = selectedProduct.appPoint || selectedProduct.price;
+        if (currentTotalPoints < price) {
+            alert(`보유 포인트(${currentTotalPoints.toLocaleString()}P)가 부족하여 교환할 수 없습니다.`);
             return;
         }
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        let pinCode = `${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        try {
+            const token = user.token;
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch('/api/gift-goods/purchase', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    goodsSeq: selectedProduct.goodsSeq || selectedProduct.id,
+                    hoSeq: user.hoSeq || 1
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.pinCode) pinCode = data.pinCode;
+            }
+        } catch (e) {
+            console.warn("Backend purchase call fallback to local", e);
+        }
+
+        const productName = selectedProduct.couponName || selectedProduct.name;
+        const providerName = selectedProduct.affiliate || selectedProduct.provider;
+        const imgPath = selectedProduct.goodsImgSmall || selectedProduct.image;
+
+        const newLog = {
+            id: Date.now(),
+            title: `${productName} 교환`,
+            dr: '포인트 쇼핑',
+            amount: price,
+            result: `-${price.toLocaleString()}P`,
+            period: todayStr,
+            type: 'use',
+            createdAt: new Date().toISOString()
+        };
+
+        const newCoupon = {
+            id: Date.now(),
+            productName: productName,
+            provider: providerName,
+            price: price,
+            image: imgPath,
+            pinCode: pinCode,
+            purchasedAt: todayStr,
+            status: '사용가능'
+        };
+
+        const updatedLogs = [newLog, ...usedLogs];
+        const updatedCoupons = [newCoupon, ...purchasedCoupons];
+
+        setUsedLogs(updatedLogs);
+        setPurchasedCoupons(updatedCoupons);
+        setLastIssuedPin(pinCode);
+
+        if (user.hoSeq) {
+            localStorage.setItem(`point_used_logs_${user.hoSeq}`, JSON.stringify(updatedLogs));
+            localStorage.setItem(`purchased_coupons_${user.hoSeq}`, JSON.stringify(updatedCoupons));
+        }
+
+        setSelectedProduct(null);
         setShowShopSuccess(true);
     };
+
+    const combinedPointLogs = React.useMemo(() => {
+        const earnedList = recentMissions.map((item, idx) => ({
+            id: `earn-${idx}`,
+            title: `${item.dr} 미션 정산`,
+            period: item.period,
+            result: item.result,
+            isEarn: item.result.includes('+'),
+            timestamp: new Date(item.period.split(' ~ ')[0] || 0).getTime()
+        }));
+
+        const usedList = usedLogs.map(item => ({
+            id: `use-${item.id}`,
+            title: item.title,
+            period: item.period,
+            result: item.result,
+            isEarn: false,
+            timestamp: new Date(item.createdAt || item.period).getTime()
+        }));
+
+        const merged = [...usedList, ...earnedList];
+        merged.sort((a, b) => b.timestamp - a.timestamp);
+
+        return merged.filter(item => {
+            if (pointFilter === 'earn') return item.isEarn;
+            if (pointFilter === 'use') return !item.isEarn;
+            return true;
+        });
+    }, [recentMissions, usedLogs, pointFilter]);
 
     const closeShopSuccess = () => {
         setShowShopSuccess(false);
@@ -262,6 +417,10 @@ const DrHistoryPage: React.FC = () => {
     const totalParticipation = drSummary?.total || 0;
     const totalSuccess = drSummary?.success || 0;
     const successRate = totalParticipation > 0 ? parseFloat(((totalSuccess / totalParticipation) * 100).toFixed(1)) : 0;
+
+    // Live reduction Wh calculations
+    const totalReductionWh = recentMissions.reduce((acc: number, item: any) => acc + (item.reductionWh || 0), 0);
+    const liveReduction = 11800 + totalReductionWh;
 
     const changeTab = (tabName: string) => {
         navigate(`/dr-history?tab=${tabName}`);
@@ -354,7 +513,7 @@ const DrHistoryPage: React.FC = () => {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ textAlign: 'right' }}>
-                                    <span className="number-font" style={{ fontSize: '18px', fontWeight: 900, color: '#00A8FF' }}>-12,194</span>
+                                    <span className="number-font" style={{ fontSize: '18px', fontWeight: 900, color: '#00A8FF' }}>-{liveReduction.toLocaleString()}</span>
                                     <span style={{ fontSize: '10px', marginLeft: '2px', color: '#94A3B8' }}>Wh 절감</span>
                                 </div>
                                 <span style={{ fontSize: '18px', color: '#64748B' }}>›</span>
@@ -554,7 +713,7 @@ const DrHistoryPage: React.FC = () => {
                             <div className="header-placeholder"></div>
                         </header>
 
-                        <main className="app-content dr-content" style={{ backgroundColor: '#FFFFFF', padding: '0 24px 100px 24px' }}>
+                        <main className="app-content dr-content" style={{ backgroundColor: '#FFFFFF', padding: '0 24px 160px 24px' }}>
                             <div style={{ textAlign: 'center', marginTop: '16px' }}>
                                 <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0F172A', lineHeight: 1.4 }}>
                                     수요반응 (DR) 신청은<br />어떻게 하나요?
@@ -570,6 +729,15 @@ const DrHistoryPage: React.FC = () => {
                                     수요반응(DR)은 실명제 기반의 서비스 입니다.<br />
                                     지구방 앱을 통해 온라인으로 간편하게 신청할 수 있습니다.
                                 </p>
+
+                                {/* 📜 신청 동의서 약관 본문 요약 표시 영역 */}
+                                <div style={{ width: '100%', backgroundColor: '#FFFFFF', border: '1px solid #D0E8F9', borderRadius: '12px', padding: '12px', fontSize: '11px', color: '#475569', textAlign: 'left', lineHeight: 1.5 }}>
+                                    <strong style={{ color: '#0F172A', display: 'block', marginBottom: '4px' }}>[수요관리사업 참여 개인정보 동의서]</strong>
+                                    · 제공받는 자: 전력거래소, 지자체, (주)에너넷<br />
+                                    · 이용 목적: 전력량 모니터링, 절전 검증 및 성공 포인트 지급<br />
+                                    · 보유 기간: 가입일로부터 3년 또는 탈퇴 시 즉시 파기
+                                </div>
+
                                 <button 
                                     onClick={() => setShowAgreementDetail(true)}
                                     style={{ width: '80%', height: '38px', border: '1.2px solid #00A8FF', borderRadius: '10px', backgroundColor: 'transparent', color: '#00A8FF', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
@@ -618,21 +786,21 @@ const DrHistoryPage: React.FC = () => {
                             </div>
                         </main>
 
-                        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 20px 24px 20px', backgroundColor: '#FFFFFF', borderTop: '1px solid #F1F5F9', zIndex: 100, display: 'flex', gap: '10px' }}>
+                        <div style={{ position: 'fixed', bottom: '72px', left: 0, right: 0, padding: '12px 20px', backgroundColor: '#FFFFFF', borderTop: '1px solid #F1F5F9', zIndex: 1005, display: 'flex', gap: '10px', boxShadow: '0 -4px 12px rgba(0,0,0,0.05)' }}>
                             <button 
                                 onClick={clearCanvas}
-                                style={{ flex: 1, height: '50px', border: 'none', borderRadius: '12px', backgroundColor: '#E5E5E5', color: '#64748B', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
+                                style={{ flex: 1, height: '48px', border: 'none', borderRadius: '12px', backgroundColor: '#E2E8F0', color: '#475569', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
                             >
-                                /Users/mkw111/Desktop/project/jigubang-project/jigubang-web/src/pages/LoginPage.tsx
+                                서명 초기화
                             </button>
                             <button 
                                 onClick={handleJoinSubmit}
                                 style={{ 
                                     flex: 2, 
-                                    height: '50px', 
+                                    height: '48px', 
                                     border: 'none', 
                                     borderRadius: '12px', 
-                                    backgroundColor: (agreedTerms && hasSigned) ? '#00A8FF' : '#E5E5E5', 
+                                    backgroundColor: (agreedTerms && hasSigned) ? '#00A8FF' : '#E2E8F0', 
                                     color: (agreedTerms && hasSigned) ? '#FFFFFF' : '#94A3B8', 
                                     fontSize: '14px', 
                                     fontWeight: 800, 
@@ -663,13 +831,13 @@ const DrHistoryPage: React.FC = () => {
                     <main className="app-content dr-content" style={{ padding: '20px' }}>
                         {/* Blue Energy Reduction Card */}
                         <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.25)', marginBottom: '20px' }}>
-                            <span style={{ fontSize: '12px', opacity: 0.9 }}>나의 DR 인사이트</span>
+                            <span style={{ fontSize: '12px', opacity: 0.9 }}>나의 DR 누적 절감 성과</span>
                             <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
-                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900, color: '#00A8FF' }}>-12,194</span>
+                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900, color: '#00A8FF' }}>-{liveReduction.toLocaleString()}</span>
                                 <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Wh 절감</span>
                             </div>
                             <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '10px' }}>
-                                누적 참여 {totalParticipation}회 중 {totalSuccess}회 성공 달성
+                                누적 참여 {totalParticipation}회 중 {totalSuccess}회 성공 달성 (달성률 {totalParticipation > 0 ? Math.round((totalSuccess / totalParticipation) * 100) : 0}%)
                             </div>
                         </div>
 
@@ -679,19 +847,19 @@ const DrHistoryPage: React.FC = () => {
                                 onClick={() => setInsightFilter('all')}
                                 style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'all' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'all' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
                             >
-                                전체
+                                전체 ({recentMissions.length})
                             </button>
                             <button 
                                 onClick={() => setInsightFilter('success')}
                                 style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'success' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'success' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
                             >
-                                성공
+                                성공 ({recentMissions.filter(m => m.result.includes('+')).length})
                             </button>
                             <button 
                                 onClick={() => setInsightFilter('failed')}
                                 style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'failed' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'failed' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
                             >
-                                실패
+                                실패 ({recentMissions.filter(m => !m.result.includes('+')).length})
                             </button>
                         </div>
 
@@ -705,7 +873,12 @@ const DrHistoryPage: React.FC = () => {
                                 .map((item, idx) => {
                                     const isSuccess = item.result.includes('+');
                                     return (
-                                        <div key={idx} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div 
+                                            key={idx} 
+                                            className="card point-tx-item" 
+                                            onClick={() => setSelectedInsightItem(item)}
+                                            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.15s' }}
+                                        >
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: isSuccess ? '#ECFDF5' : '#FEF2F2', color: isSuccess ? '#10B981' : '#EF4444', fontWeight: 800 }}>
@@ -715,10 +888,11 @@ const DrHistoryPage: React.FC = () => {
                                                 </div>
                                                 <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.period}</span>
                                             </div>
-                                            <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <span className="number-font" style={{ fontSize: '15px', fontWeight: 900, color: isSuccess ? '#10B981' : '#EF4444' }}>
                                                     {item.result}
                                                 </span>
+                                                <span style={{ fontSize: '14px', color: '#94A3B8' }}>›</span>
                                             </div>
                                         </div>
                                     );
@@ -913,7 +1087,7 @@ const DrHistoryPage: React.FC = () => {
                             <div className="header-placeholder"></div>
                         </header>
 
-                        <main className="app-content dr-content" style={{ backgroundColor: '#FFFFFF', padding: '0 24px 100px 24px' }}>
+                        <main className="app-content dr-content" style={{ backgroundColor: '#FFFFFF', padding: '0 24px 160px 24px' }}>
                             <div style={{ textAlign: 'center', marginTop: '16px' }}>
                                 <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0F172A', lineHeight: 1.4 }}>
                                     수요반응 (DR) 신청은<br />어떻게 하나요?
@@ -929,6 +1103,15 @@ const DrHistoryPage: React.FC = () => {
                                     수요반응(DR)은 실명제 기반의 서비스 입니다.<br />
                                     지구방 앱을 통해 온라인으로 간편하게 신청할 수 있습니다.
                                 </p>
+
+                                {/* 📜 신청 동의서 약관 본문 요약 표시 영역 */}
+                                <div style={{ width: '100%', backgroundColor: '#FFFFFF', border: '1px solid #D0E8F9', borderRadius: '12px', padding: '12px', fontSize: '11px', color: '#475569', textAlign: 'left', lineHeight: 1.5 }}>
+                                    <strong style={{ color: '#0F172A', display: 'block', marginBottom: '4px' }}>[수요관리사업 참여 개인정보 동의서]</strong>
+                                    · 제공받는 자: 전력거래소, 지자체, (주)에너넷<br />
+                                    · 이용 목적: 전력량 모니터링, 절전 검증 및 성공 포인트 지급<br />
+                                    · 보유 기간: 가입일로부터 3년 또는 탈퇴 시 즉시 파기
+                                </div>
+
                                 <button 
                                     onClick={() => setShowAgreementDetail(true)}
                                     style={{ width: '80%', height: '38px', border: '1.2px solid #00A8FF', borderRadius: '10px', backgroundColor: 'transparent', color: '#00A8FF', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
@@ -1023,11 +1206,11 @@ const DrHistoryPage: React.FC = () => {
                         <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(0, 114, 255, 0.25)', marginBottom: '20px' }}>
                             <span style={{ fontSize: '12px', opacity: 0.9 }}>통합 보유 포인트</span>
                             <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
-                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900 }}>{(drCards?.totalPoint || 0).toLocaleString()}</span>
+                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900 }}>{currentTotalPoints.toLocaleString()}</span>
                                 <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Point</span>
                             </div>
                             <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '10px' }}>
-                                누적 적립 {((drCards?.totalPoint || 0) + 6000).toLocaleString()} P · 누적 사용 6,000 P
+                                누적 적립 {totalEarnedPoints.toLocaleString()} P · 누적 사용 {totalUsedAmount.toLocaleString()} P
                             </div>
                         </div>
 
@@ -1052,29 +1235,24 @@ const DrHistoryPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Point logs mapping with actual dr history response list */}
+                        {/* Point logs mapping */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {recentMissions
-                                .filter(item => {
-                                    const isEarn = item.result.includes('+');
-                                    return pointFilter === 'all' || (pointFilter === 'earn' ? isEarn : !isEarn);
-                                })
-                                .map((item, idx) => (
-                                    <div key={idx} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <strong style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>{item.dr} 미션 정산</strong>
-                                            <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.period}</span>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <span className="number-font" style={{ fontSize: '16px', fontWeight: 900, color: item.result.includes('+') ? '#10B981' : '#EF4444' }}>
-                                                {item.result}
-                                            </span>
-                                        </div>
+                            {combinedPointLogs.map((item) => (
+                                <div key={item.id} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <strong style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>{item.title}</strong>
+                                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.period}</span>
                                     </div>
-                                ))}
-                            {recentMissions.length === 0 && (
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span className="number-font" style={{ fontSize: '16px', fontWeight: 900, color: item.isEarn ? '#10B981' : '#EF4444' }}>
+                                            {item.result}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                            {combinedPointLogs.length === 0 && (
                                 <div style={{ padding: '30px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
-                                    포인트 정산 및 적립 내역이 존재하지 않습니다.
+                                    포인트 정산 및 적립/사용 내역이 존재하지 않습니다.
                                 </div>
                             )}
                         </div>
@@ -1084,7 +1262,7 @@ const DrHistoryPage: React.FC = () => {
             )}
 
             {/* ======================================================== */}
-            {/* 6. TAB: shop (기프티콘 포인트 쇼핑 뷰 - Page 9) */}
+            {/* 6. TAB: shop (기프티콘 포인트 쇼핑 뷰 - Page 9 & 12) */}
             {activeTab === 'shop' && (
                 <>
                     <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
@@ -1098,28 +1276,121 @@ const DrHistoryPage: React.FC = () => {
                     <main className="app-content dr-content" style={{ padding: '16px' }}>
                         <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>나의 보유 포인트</span>
-                            <strong className="number-font" style={{ fontSize: '15px', color: '#0072FF' }}>{(drCards?.totalPoint || 0).toLocaleString()} P</strong>
+                            <strong className="number-font" style={{ fontSize: '15px', color: '#0072FF' }}>{currentTotalPoints.toLocaleString()} P</strong>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                            {mockProducts.map(product => (
-                                <div 
-                                    key={product.id} 
-                                    className="card product-card-item" 
-                                    onClick={() => setSelectedProduct(product)}
-                                    style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}
-                                >
-                                    <div style={{ height: '110px', backgroundColor: '#F8FAFC', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                        <img src={product.image} alt={product.name} style={{ height: '70%', width: 'auto', objectFit: 'contain' }} />
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                        <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>{product.provider}</span>
-                                        <strong style={{ fontSize: '12px', fontWeight: 800, color: '#1E293B', height: '32px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: '1.3' }}>{product.name}</strong>
-                                        <span className="number-font" style={{ fontSize: '13px', fontWeight: 900, color: '#0072FF', marginTop: '4px' }}>{product.price.toLocaleString()} P</span>
-                                    </div>
-                                </div>
-                            ))}
+                        {/* Shop Main Tabs: Catalog vs My Coupons */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
+                            <button
+                                onClick={() => setShopTab('catalog')}
+                                style={{ flex: 1, height: '40px', border: 'none', borderRadius: '10px', backgroundColor: shopTab === 'catalog' ? '#0072FF' : '#F1F5F9', color: shopTab === 'catalog' ? '#FFFFFF' : '#64748B', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                🛒 포인트 기프티콘 몰
+                            </button>
+                            <button
+                                onClick={() => setShopTab('coupons')}
+                                style={{ flex: 1, height: '40px', border: 'none', borderRadius: '10px', backgroundColor: shopTab === 'coupons' ? '#0072FF' : '#F1F5F9', color: shopTab === 'coupons' ? '#FFFFFF' : '#64748B', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                🎁 나의 쿠폰함 ({purchasedCoupons.length})
+                            </button>
                         </div>
+
+                        {shopTab === 'catalog' ? (
+                            <>
+                                {/* Category Filter Buttons */}
+                                <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+                                    {(apiCategories.length > 0 ? apiCategories : [
+                                        { categorySeq: 0, categoryName: '전체' },
+                                        { categorySeq: 1, categoryName: '상품권/페이' },
+                                        { categorySeq: 2, categoryName: '카페/음료' },
+                                        { categorySeq: 3, categoryName: '편의점/마트' }
+                                    ]).map(cat => (
+                                        <button
+                                            key={cat.categorySeq}
+                                            onClick={() => setShopCategory(cat.categorySeq)}
+                                            style={{ border: 'none', borderRadius: '16px', padding: '6px 14px', fontSize: '11px', fontWeight: 800, backgroundColor: shopCategory === cat.categorySeq ? '#1E293B' : '#E2E8F0', color: shopCategory === cat.categorySeq ? '#FFFFFF' : '#64748B', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                        >
+                                            {cat.categoryName}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    {(apiGoodsList.length > 0 ? apiGoodsList : mockProducts)
+                                        .filter(p => shopCategory === 0 || (p.categorySeq ? p.categorySeq === shopCategory : p.category === (shopCategory === 1 ? 'pay' : shopCategory === 2 ? 'cafe' : 'store')))
+                                        .map(product => (
+                                            <div 
+                                                key={product.goodsSeq || product.id} 
+                                                className="card product-card-item" 
+                                                onClick={() => setSelectedProduct(product)}
+                                                style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}
+                                            >
+                                                <div style={{ height: '110px', backgroundColor: '#F8FAFC', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                                    <img src={product.goodsImgSmall || product.image} alt={product.couponName || product.name} style={{ height: '70%', width: 'auto', objectFit: 'contain' }} />
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                    <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>{product.affiliate || product.provider}</span>
+                                                    <strong style={{ fontSize: '12px', fontWeight: 800, color: '#1E293B', height: '32px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: '1.3' }}>{product.couponName || product.name}</strong>
+                                                    <span className="number-font" style={{ fontSize: '13px', fontWeight: 900, color: '#0072FF', marginTop: '4px' }}>{(product.appPoint || product.price).toLocaleString()} P</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            </>
+                        ) : (
+                            /* Purchased Coupons Box View */
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {purchasedCoupons.map((coupon) => (
+                                    <div key={coupon.id} style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '48px', height: '48px', backgroundColor: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <img src={coupon.image} alt={coupon.productName} style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                                                </div>
+                                                <div>
+                                                    <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>{coupon.provider}</span>
+                                                    <strong style={{ display: 'block', fontSize: '13px', color: '#0F172A', fontWeight: 800 }}>{coupon.productName}</strong>
+                                                    <span style={{ fontSize: '11px', color: '#64748B' }}>발급일: {coupon.purchasedAt}</span>
+                                                </div>
+                                            </div>
+                                            <span style={{ backgroundColor: '#DCFCE7', color: '#166534', fontSize: '10px', fontWeight: 800, padding: '4px 8px', borderRadius: '8px' }}>
+                                                {coupon.status || '사용가능'}
+                                            </span>
+                                        </div>
+
+                                        <div style={{ backgroundColor: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: '12px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <span style={{ fontSize: '10px', color: '#64748B', display: 'block' }}>PIN 번호</span>
+                                                <strong className="number-font" style={{ fontSize: '15px', letterSpacing: '1px', color: '#0F172A' }}>{coupon.pinCode}</strong>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(coupon.pinCode);
+                                                    alert(`PIN 번호(${coupon.pinCode})가 복사되었습니다.`);
+                                                }}
+                                                style={{ border: '1px solid #0072FF', backgroundColor: '#EFF6FF', color: '#0072FF', borderRadius: '8px', padding: '6px 12px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+                                            >
+                                                PIN 복사
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {purchasedCoupons.length === 0 && (
+                                    <div style={{ textAlign: 'center', padding: '50px 20px', backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎁</div>
+                                        <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', margin: '0 0 6px 0' }}>구매한 기프티콘이 없습니다</h4>
+                                        <p style={{ fontSize: '11px', color: '#94A3B8', margin: '0 0 20px 0' }}>포인트 몰에서 다양한 상품을 기프티콘으로 교환해보세요!</p>
+                                        <button
+                                            onClick={() => setShopTab('catalog')}
+                                            style={{ height: '40px', padding: '0 20px', border: 'none', borderRadius: '10px', backgroundColor: '#0072FF', color: '#FFFFFF', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                                        >
+                                            기프티콘 구경하기
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                     </main>
                     <BottomNav />
@@ -1131,13 +1402,13 @@ const DrHistoryPage: React.FC = () => {
                 <div className="modal-overlay animated-fade-in" onClick={() => setSelectedProduct(null)} style={{ zIndex: 11000 }}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{ padding: '24px', maxWidth: '320px', textAlign: 'center' }}>
                         <div style={{ width: '80px', height: '80px', margin: '0 auto 12px auto', backgroundColor: '#F8FAFC', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <img src={selectedProduct.image} alt={selectedProduct.name} style={{ width: '60%', height: 'auto', objectFit: 'contain' }} />
+                            <img src={selectedProduct.goodsImgSmall || selectedProduct.image} alt={selectedProduct.couponName || selectedProduct.name} style={{ width: '60%', height: 'auto', objectFit: 'contain' }} />
                         </div>
-                        <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 700 }}>{selectedProduct.provider}</span>
-                        <h4 style={{ margin: '4px 0 12px 0', fontSize: '14px', fontWeight: 900, color: '#1E293B' }}>{selectedProduct.name}</h4>
+                        <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 700 }}>{selectedProduct.affiliate || selectedProduct.provider}</span>
+                        <h4 style={{ margin: '4px 0 12px 0', fontSize: '14px', fontWeight: 900, color: '#1E293B' }}>{selectedProduct.couponName || selectedProduct.name}</h4>
                         <div style={{ backgroundColor: '#F8FAFC', borderRadius: '12px', padding: '12px', fontSize: '12px', color: '#475569', marginBottom: '20px' }}>
                             <span>차감 포인트 : </span>
-                            <strong className="number-font" style={{ color: '#EF4444', fontWeight: 800 }}>{selectedProduct.price.toLocaleString()} P</strong>
+                            <strong className="number-font" style={{ color: '#EF4444', fontWeight: 800 }}>{(selectedProduct.appPoint || selectedProduct.price).toLocaleString()} P</strong>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <button 
@@ -1160,15 +1431,92 @@ const DrHistoryPage: React.FC = () => {
             {/* 🎉 쇼핑 교환 성공 완료 모달 */}
             {showShopSuccess && (
                 <div className="modal-overlay animated-fade-in" style={{ zIndex: 12000 }}>
-                    <div className="modal-content" style={{ padding: '32px 24px', maxWidth: '300px', textAlign: 'center' }}>
+                    <div className="modal-content" style={{ padding: '28px 24px', maxWidth: '320px', textAlign: 'center' }}>
                         <div style={{ fontSize: '42px', marginBottom: '12px' }}>✔️</div>
-                        <h3 style={{ margin: '0 0 6px 0', fontSize: '17px', fontWeight: 900 }}>교환 신청 완료!</h3>
-                        <p style={{ margin: '0 0 20px 0', fontSize: '12px', color: '#64748B', lineHeight: 1.5, wordBreak: 'keep-all' }}>
-                            상품 PIN 코드가 문자로 전송되었습니다. 이용해주셔서 감사합니다!
+                        <h3 style={{ margin: '0 0 6px 0', fontSize: '17px', fontWeight: 900, color: '#0F172A' }}>교환 신청 완료!</h3>
+                        <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748B', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+                            기프티콘 PIN 코드가 발급되었습니다.
                         </p>
-                        <button 
-                            onClick={closeShopSuccess}
-                            style={{ width: '100%', height: '44px', border: 'none', borderRadius: '10px', backgroundColor: '#3B82F6', color: 'white', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+
+                        {lastIssuedPin && (
+                            <div style={{ backgroundColor: '#F8FAFC', border: '1px dashed #0072FF', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
+                                <span style={{ fontSize: '10px', color: '#64748B', display: 'block', marginBottom: '4px' }}>발급된 PIN 번호</span>
+                                <strong className="number-font" style={{ fontSize: '16px', letterSpacing: '1px', color: '#0072FF' }}>{lastIssuedPin}</strong>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <button 
+                                onClick={() => {
+                                    if (lastIssuedPin) {
+                                        navigator.clipboard.writeText(lastIssuedPin);
+                                        alert(`PIN 번호(${lastIssuedPin})가 복사되었습니다.`);
+                                    }
+                                }}
+                                style={{ width: '100%', height: '44px', border: '1px solid #0072FF', borderRadius: '10px', backgroundColor: '#EFF6FF', color: '#0072FF', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                PIN 코드 복사
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setShowShopSuccess(false);
+                                    setShopTab('coupons');
+                                }}
+                                style={{ width: '100%', height: '44px', border: 'none', borderRadius: '10px', backgroundColor: '#3B82F6', color: 'white', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                나의 쿠폰함 확인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 📊 DR 인사이트 상세 팝업 모달 */}
+            {selectedInsightItem && (
+                <div className="modal-overlay animated-fade-in" onClick={() => setSelectedInsightItem(null)} style={{ zIndex: 12000 }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ padding: '24px', maxWidth: '340px', textAlign: 'left', borderRadius: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '12px', backgroundColor: selectedInsightItem.result.includes('+') ? '#ECFDF5' : '#FEF2F2', color: selectedInsightItem.result.includes('+') ? '#10B981' : '#EF4444' }}>
+                                {selectedInsightItem.result.includes('+') ? '미션 성공' : '미션 실패'}
+                            </span>
+                            <button onClick={() => setSelectedInsightItem(null)} style={{ border: 'none', background: 'none', fontSize: '18px', color: '#94A3B8', cursor: 'pointer' }}>✕</button>
+                        </div>
+
+                        <h3 style={{ fontSize: '16px', fontWeight: 900, color: '#0F172A', margin: '0 0 4px 0' }}>{selectedInsightItem.dr} 상세 분석</h3>
+                        <p style={{ fontSize: '11px', color: '#64748B', margin: '0 0 16px 0' }}>발령 일시: {selectedInsightItem.period}</p>
+
+                         <div style={{ backgroundColor: '#F8FAFC', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                <span style={{ color: '#64748B' }}>획득 포인트</span>
+                                <strong className="number-font" style={{ color: selectedInsightItem.result.includes('+') ? '#10B981' : '#EF4444', fontWeight: 900 }}>{selectedInsightItem.result}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                <span style={{ color: '#64748B' }}>기준 사용량 (CBL)</span>
+                                <strong className="number-font" style={{ color: '#1E293B', fontWeight: 800 }}>2,000 Wh</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                <span style={{ color: '#64748B' }}>실제 에너지 사용량</span>
+                                <strong className="number-font" style={{ color: '#1E293B', fontWeight: 800 }}>
+                                    {selectedInsightItem.result.includes('+') ? `${(2000 - (selectedInsightItem.reductionWh || 0)).toLocaleString()} Wh` : '2,250 Wh'}
+                                </strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderTop: '1px dashed #CBD5E1', paddingTop: '10px' }}>
+                                <span style={{ color: '#0F172A', fontWeight: 800 }}>절감 에너지량</span>
+                                <strong className="number-font" style={{ color: selectedInsightItem.result.includes('+') ? '#0072FF' : '#EF4444', fontWeight: 900 }}>
+                                    {selectedInsightItem.result.includes('+') ? `-${(selectedInsightItem.reductionWh || 0)} Wh (달성률 ${Math.round(((selectedInsightItem.reductionWh || 0) / 200) * 100)}%)` : '+250 Wh (초과)'}
+                                </strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                <span style={{ color: '#64748B' }}>탄소 감축 효과</span>
+                                <strong className="number-font" style={{ color: '#10B981', fontWeight: 800 }}>
+                                    {selectedInsightItem.result.includes('+') ? `${((selectedInsightItem.reductionWh || 0) * 0.000424).toFixed(2)} kgCO2` : '0.00 kgCO2'}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setSelectedInsightItem(null)}
+                            style={{ width: '100%', height: '46px', border: 'none', borderRadius: '12px', backgroundColor: '#0072FF', color: '#FFFFFF', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
                         >
                             확인
                         </button>
