@@ -57,6 +57,7 @@ const DrHistoryPage: React.FC = () => {
     const [apiGoodsList, setApiGoodsList] = useState<any[]>([]);
     const [apiCategories, setApiCategories] = useState<any[]>([]);
     const [selectedInsightItem, setSelectedInsightItem] = useState<any>(null);
+    const [mainDrSlide, setMainDrSlide] = useState<'kpx' | 'gyeongnam' | 'all'>('kpx');
 
     // Synchronize activeTab state with URL tab query string
     useEffect(() => {
@@ -484,6 +485,172 @@ const DrHistoryPage: React.FC = () => {
                                 style={{ width: '70px', height: '70px', objectFit: 'contain', zIndex: 2 }} 
                                 onError={(e) => { (e.target as HTMLImageElement).src = '/image/jigubang_3d.png'; }}
                             />
+                        </div>
+
+                        {/* 🎠 국민 DR / 경남 DR / 통합 DR 슬라이드 카루셀 카드 */}
+                        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+                            {/* Slide Tabs Header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                    <button
+                                        onClick={() => setMainDrSlide('kpx')}
+                                        style={{ border: 'none', borderRadius: '12px', padding: '6px 12px', fontSize: '11px', fontWeight: 800, backgroundColor: mainDrSlide === 'kpx' ? '#0072FF' : '#F1F5F9', color: mainDrSlide === 'kpx' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                    >
+                                        🇰🇷 국민 DR
+                                    </button>
+                                    <button
+                                        onClick={() => setMainDrSlide('gyeongnam')}
+                                        style={{ border: 'none', borderRadius: '12px', padding: '6px 12px', fontSize: '11px', fontWeight: 800, backgroundColor: mainDrSlide === 'gyeongnam' ? '#10B981' : '#F1F5F9', color: mainDrSlide === 'gyeongnam' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                    >
+                                        🌿 경남 DR
+                                    </button>
+                                    <button
+                                        onClick={() => setMainDrSlide('all')}
+                                        style={{ border: 'none', borderRadius: '12px', padding: '6px 12px', fontSize: '11px', fontWeight: 800, backgroundColor: mainDrSlide === 'all' ? '#1E293B' : '#F1F5F9', color: mainDrSlide === 'all' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                    >
+                                        🌐 통합 DR
+                                    </button>
+                                </div>
+                                <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 700 }}>슬라이드 ‹ ›</span>
+                            </div>
+
+                            {/* Slide 1: 국민 DR (KPX) */}
+                            {mainDrSlide === 'kpx' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700, display: 'block' }}>전력거래소 주관</span>
+                                            <strong style={{ fontSize: '17px', color: '#0F172A', fontWeight: 900 }}>국민 DR (KPX)</strong>
+                                        </div>
+                                        <span style={{ fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '10px', backgroundColor: drCards?.isHouseholdsKpxDr ? '#EFF6FF' : '#F1F5F9', color: drCards?.isHouseholdsKpxDr ? '#0072FF' : '#64748B' }}>
+                                            {drCards?.isHouseholdsKpxDr ? '참여 승인 완료' : '미가입'}
+                                        </span>
+                                    </div>
+
+                                    <div style={{ backgroundColor: '#F8FAFC', borderRadius: '16px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <span style={{ fontSize: '10px', color: '#64748B', display: 'block' }}>보유 국민 DR 포인트</span>
+                                            <strong className="number-font" style={{ fontSize: '20px', color: '#0072FF', fontWeight: 900 }}>
+                                                {(points?.kpxPoints ?? drCards?.kpxPoint ?? 0).toLocaleString()} P
+                                            </strong>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span style={{ fontSize: '10px', color: '#64748B', display: 'block' }}>성공 모드</span>
+                                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#1E293B' }}>회당 +1,000P</span>
+                                        </div>
+                                    </div>
+
+                                    <p style={{ margin: 0, fontSize: '11px', color: '#64748B', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+                                        전국 아파트 단지 대상 전력 피크 시간 절전 참여 및 현금성 리워드 지급 프로그램
+                                    </p>
+
+                                    <button
+                                        onClick={() => {
+                                            if (drCards?.isHouseholdsKpxDr) {
+                                                changeTab('join-status');
+                                            } else {
+                                                setDrawerType('KPX');
+                                                setJoinStep('agreement');
+                                            }
+                                        }}
+                                        style={{ width: '100%', height: '42px', border: 'none', borderRadius: '12px', backgroundColor: '#0072FF', color: '#FFFFFF', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+                                    >
+                                        {drCards?.isHouseholdsKpxDr ? '국민 DR 참여 현황 확인 ›' : '국민 DR 가입 신청하기 ›'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Slide 2: 경남 DR (경남도민) */}
+                            {mainDrSlide === 'gyeongnam' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700, display: 'block' }}>경상남도 지자체 연계</span>
+                                            <strong style={{ fontSize: '17px', color: '#0F172A', fontWeight: 900 }}>경남 DR (도민수요반응)</strong>
+                                        </div>
+                                        <span style={{ fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '10px', backgroundColor: drCards?.isHouseholdsGyeongnamDr ? '#ECFDF5' : '#F1F5F9', color: drCards?.isHouseholdsGyeongnamDr ? '#10B981' : '#64748B' }}>
+                                            {drCards?.isHouseholdsGyeongnamDr ? '참여 승인 완료' : '미가입'}
+                                        </span>
+                                    </div>
+
+                                    <div style={{ backgroundColor: '#F8FAFC', borderRadius: '16px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <span style={{ fontSize: '10px', color: '#64748B', display: 'block' }}>보유 경남 DR 포인트</span>
+                                            <strong className="number-font" style={{ fontSize: '20px', color: '#10B981', fontWeight: 900 }}>
+                                                {(points?.gyeongnamPoints ?? drCards?.gyeongnamPoint ?? 0).toLocaleString()} P
+                                            </strong>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span style={{ fontSize: '10px', color: '#64748B', display: 'block' }}>성공 모드</span>
+                                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#1E293B' }}>회당 +1,000P</span>
+                                        </div>
+                                    </div>
+
+                                    <p style={{ margin: 0, fontSize: '11px', color: '#64748B', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+                                        경상남도 관내 세대 대상 주민 참여형 에너드리워드 및 탄소중립 실천 사업
+                                    </p>
+
+                                    <button
+                                        onClick={() => {
+                                            if (drCards?.isHouseholdsGyeongnamDr) {
+                                                changeTab('join-status');
+                                            } else {
+                                                setDrawerType('GYEONGNAM');
+                                                setJoinStep('agreement');
+                                            }
+                                        }}
+                                        style={{ width: '100%', height: '42px', border: 'none', borderRadius: '12px', backgroundColor: '#10B981', color: '#FFFFFF', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
+                                    >
+                                        {drCards?.isHouseholdsGyeongnamDr ? '경남 DR 참여 현황 확인 ›' : '경남 DR 가입 신청하기 ›'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Slide 3: 통합 DR */}
+                            {mainDrSlide === 'all' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700, display: 'block' }}>국민 DR + 경남 DR</span>
+                                            <strong style={{ fontSize: '17px', color: '#0F172A', fontWeight: 900 }}>통합 DR 리포트</strong>
+                                        </div>
+                                        <span style={{ fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '10px', backgroundColor: '#F1F5F9', color: '#1E293B' }}>
+                                            가입 DR {(drCards?.isHouseholdsKpxDr ? 1 : 0) + (drCards?.isHouseholdsGyeongnamDr ? 1 : 0)}개
+                                        </span>
+                                    </div>
+
+                                    <div style={{ backgroundColor: '#F8FAFC', borderRadius: '16px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <span style={{ fontSize: '10px', color: '#64748B', display: 'block' }}>총 통합 포인트</span>
+                                            <strong className="number-font" style={{ fontSize: '20px', color: '#0072FF', fontWeight: 900 }}>
+                                                {currentTotalPoints.toLocaleString()} P
+                                            </strong>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span style={{ fontSize: '10px', color: '#64748B', display: 'block' }}>누적 절감 에너지</span>
+                                            <span className="number-font" style={{ fontSize: '14px', fontWeight: 900, color: '#0F172A' }}>-{(totalSuccess * 2438).toLocaleString()} Wh</span>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <div style={{ flex: 1, backgroundColor: '#EFF6FF', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                                            <span style={{ fontSize: '10px', color: '#0072FF', display: 'block', fontWeight: 700 }}>국민 DR</span>
+                                            <strong className="number-font" style={{ fontSize: '13px', color: '#0072FF', fontWeight: 800 }}>{(points?.kpxPoints ?? drCards?.kpxPoint ?? 0).toLocaleString()} P</strong>
+                                        </div>
+                                        <div style={{ flex: 1, backgroundColor: '#ECFDF5', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                                            <span style={{ fontSize: '10px', color: '#10B981', display: 'block', fontWeight: 700 }}>경남 DR</span>
+                                            <strong className="number-font" style={{ fontSize: '13px', color: '#10B981', fontWeight: 800 }}>{(points?.gyeongnamPoints ?? drCards?.gyeongnamPoint ?? 0).toLocaleString()} P</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dots Indicator */}
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '4px' }}>
+                                <span onClick={() => setMainDrSlide('kpx')} style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: mainDrSlide === 'kpx' ? '#0072FF' : '#CBD5E1', cursor: 'pointer', transition: 'all 0.2s' }}></span>
+                                <span onClick={() => setMainDrSlide('gyeongnam')} style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: mainDrSlide === 'gyeongnam' ? '#10B981' : '#CBD5E1', cursor: 'pointer', transition: 'all 0.2s' }}></span>
+                                <span onClick={() => setMainDrSlide('all')} style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: mainDrSlide === 'all' ? '#1E293B' : '#CBD5E1', cursor: 'pointer', transition: 'all 0.2s' }}></span>
+                            </div>
                         </div>
 
                         {/* 2. 오늘의 발령 요약 카드 (Page 4 인덱스형) */}

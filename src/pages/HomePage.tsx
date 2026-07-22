@@ -32,6 +32,8 @@ const HomePage: React.FC = () => {
     const [drCardData, setDrCardData] = useState<any>(null);
     const [activeIssue, setActiveIssue] = useState<any>(null);
     const [memberCount, setMemberCount] = useState<number>(0);
+    const [usedPoints, setUsedPoints] = useState<number>(0);
+    const [drSubSlide, setDrSubSlide] = useState<'all' | 'kpx' | 'gyeongnam'>('all');
     
     // Check authentication on mount
     useEffect(() => {
@@ -87,6 +89,16 @@ const HomePage: React.FC = () => {
                 if (pointsRes.status === 'fulfilled' && pointsRes.value?.ok) {
                     const data = await pointsRes.value.json();
                     setPoints(data);
+                }
+
+                // Compute local point usage history
+                const savedLogs = localStorage.getItem(`point_used_logs_${hoSeq}`);
+                if (savedLogs) {
+                    try {
+                        const parsed = JSON.parse(savedLogs);
+                        const totalUsed = parsed.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+                        setUsedPoints(totalUsed);
+                    } catch (e) {}
                 }
 
                 // 3. Members
@@ -442,44 +454,136 @@ const HomePage: React.FC = () => {
                                 )}
                             </div>
                         ) : (
-                            /* Card 2: 나의 DR 포인트 */
-                            <div className="card data-slider-card dr-points-card" onClick={() => navigate('/dr-history?tab=points')} style={{ cursor: 'pointer' }}>
-                                <div className="card-top">
+                            /* Card 2: 나의 DR 포인트 - 국민 DR / 경남 DR / 통합 DR 슬라이더 */
+                            <div className="card data-slider-card dr-points-card">
+                                <div className="card-top" style={{ marginBottom: '12px' }}>
                                     <div className="card-top-left">
                                         <span className="energy-icon">⭐</span>
                                         <span className="card-top-title">나의 DR 포인트</span>
                                     </div>
-                                    <div className="period-subtitle">2024.09.23 ~ 현재</div>
-                                </div>
-
-                                <div className="usage-summary" style={{ marginBottom: '24px' }}>
-                                    <div className="points-title" style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 600 }}>통합 포인트</div>
-                                    <div className="usage-main">
-                                        <span className="number-font main-value">{(points.totalPoints || -1).toLocaleString()}</span>
-                                        <span className="unit">Point</span>
-                                        <span className="detail-arrow">›</span>
-                                    </div>
-                                    <div className="cost-main">
-                                        <span className="cost-value">누적 적립 {((points.totalPoints || -1) + 12000).toLocaleString()}P · 누적 사용 12,000P</span>
-                                    </div>
-                                </div>
-
-                                <div className="dr-stats-row">
-                                    <div className="stat-col">
-                                        <div className="stat-label">KPX 포인트</div>
-                                        <div className="stat-val number-font">{(points.kpxPoints || -1).toLocaleString()} P</div>
-                                    </div>
-                                    <div className="stat-col">
-                                        <div className="stat-label">경남 포인트</div>
-                                        <div className="stat-val number-font green-text">{(points.gyeongnamPoints || 5600).toLocaleString()} P</div>
-                                    </div>
-                                    <div className="stat-col">
-                                        <div className="stat-label">누적 성공</div>
-                                        <div className="stat-val number-font blue-text">Active</div>
+                                    {/* DR Sub-slide Carousel Switcher */}
+                                    <div style={{ display: 'flex', gap: '4px', backgroundColor: '#F1F5F9', borderRadius: '12px', padding: '2px' }}>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setDrSubSlide('all'); }}
+                                            style={{ border: 'none', borderRadius: '10px', padding: '4px 8px', fontSize: '10px', fontWeight: 800, backgroundColor: drSubSlide === 'all' ? '#0072FF' : 'transparent', color: drSubSlide === 'all' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                        >
+                                            통합
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setDrSubSlide('kpx'); }}
+                                            style={{ border: 'none', borderRadius: '10px', padding: '4px 8px', fontSize: '10px', fontWeight: 800, backgroundColor: drSubSlide === 'kpx' ? '#0072FF' : 'transparent', color: drSubSlide === 'kpx' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                        >
+                                            국민DR
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setDrSubSlide('gyeongnam'); }}
+                                            style={{ border: 'none', borderRadius: '10px', padding: '4px 8px', fontSize: '10px', fontWeight: 800, backgroundColor: drSubSlide === 'gyeongnam' ? '#0072FF' : 'transparent', color: drSubSlide === 'gyeongnam' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                        >
+                                            경남DR
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="disclaimer-text" style={{ marginTop: '16px', textAlign: 'center' }}>
+                                {drSubSlide === 'all' && (
+                                    <div onClick={() => navigate('/dr-history?tab=points')} style={{ cursor: 'pointer' }}>
+                                        <div className="usage-summary" style={{ marginBottom: '20px' }}>
+                                            <div className="points-title" style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 600 }}>통합 포인트 (국민 + 경남)</div>
+                                            <div className="usage-main">
+                                                <span className="number-font main-value">{Math.max(0, (points.totalPoints || 0) - usedPoints).toLocaleString()}</span>
+                                                <span className="unit">Point</span>
+                                                <span className="detail-arrow">›</span>
+                                            </div>
+                                            <div className="cost-main">
+                                                <span className="cost-value">누적 적립 {(points.totalPoints || 0).toLocaleString()}P · 누적 사용 {usedPoints.toLocaleString()}P</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="dr-stats-row">
+                                            <div className="stat-col">
+                                                <div className="stat-label">KPX 국민</div>
+                                                <div className="stat-val number-font">{(points.kpxPoints || 0).toLocaleString()} P</div>
+                                            </div>
+                                            <div className="stat-col">
+                                                <div className="stat-label">경남도민</div>
+                                                <div className="stat-val number-font green-text">{(points.gyeongnamPoints || 0).toLocaleString()} P</div>
+                                            </div>
+                                            <div className="stat-col">
+                                                <div className="stat-label">가입 상태</div>
+                                                <div className="stat-val number-font blue-text">Active</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {drSubSlide === 'kpx' && (
+                                    <div onClick={() => navigate('/dr-history?tab=points')} style={{ cursor: 'pointer' }}>
+                                        <div className="usage-summary" style={{ marginBottom: '20px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                <span className="points-title" style={{ fontSize: '13px', color: '#0072FF', fontWeight: 800 }}>🇰🇷 국민 DR (KPX 전력거래소)</span>
+                                                <span style={{ fontSize: '10px', backgroundColor: '#EFF6FF', color: '#0072FF', padding: '2px 8px', borderRadius: '8px', fontWeight: 800 }}>가입완료</span>
+                                            </div>
+                                            <div className="usage-main">
+                                                <span className="number-font main-value" style={{ color: '#0072FF' }}>{(points.kpxPoints || 0).toLocaleString()}</span>
+                                                <span className="unit">Point</span>
+                                                <span className="detail-arrow">›</span>
+                                            </div>
+                                            <div className="cost-main">
+                                                <span className="cost-value">전력거래소 주관 전국 단위 수요반응 포인트</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="dr-stats-row">
+                                            <div className="stat-col">
+                                                <div className="stat-label">주관 기관</div>
+                                                <div className="stat-val number-font" style={{ fontSize: '11px' }}>전력거래소</div>
+                                            </div>
+                                            <div className="stat-col">
+                                                <div className="stat-label">적립 리워드</div>
+                                                <div className="stat-val number-font blue-text">회당 +1,000P</div>
+                                            </div>
+                                            <div className="stat-col">
+                                                <div className="stat-label">상세 확인</div>
+                                                <div className="stat-val number-font" style={{ fontSize: '11px', color: '#0072FF' }}>바로가기 ›</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {drSubSlide === 'gyeongnam' && (
+                                    <div onClick={() => navigate('/dr-history?tab=points')} style={{ cursor: 'pointer' }}>
+                                        <div className="usage-summary" style={{ marginBottom: '20px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                <span className="points-title" style={{ fontSize: '13px', color: '#10B981', fontWeight: 800 }}>🌿 경남 DR (경상남도 지자체)</span>
+                                                <span style={{ fontSize: '10px', backgroundColor: '#ECFDF5', color: '#10B981', padding: '2px 8px', borderRadius: '8px', fontWeight: 800 }}>가입완료</span>
+                                            </div>
+                                            <div className="usage-main">
+                                                <span className="number-font main-value" style={{ color: '#10B981' }}>{(points.gyeongnamPoints || 0).toLocaleString()}</span>
+                                                <span className="unit">Point</span>
+                                                <span className="detail-arrow">›</span>
+                                            </div>
+                                            <div className="cost-main">
+                                                <span className="cost-value">경상남도 지자체 연계 도민 참여 리워드</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="dr-stats-row">
+                                            <div className="stat-col">
+                                                <div className="stat-label">주관 기관</div>
+                                                <div className="stat-val number-font" style={{ fontSize: '11px' }}>경상남도</div>
+                                            </div>
+                                            <div className="stat-col">
+                                                <div className="stat-label">적립 리워드</div>
+                                                <div className="stat-val number-font green-text">회당 +1,000P</div>
+                                            </div>
+                                            <div className="stat-col">
+                                                <div className="stat-label">상세 확인</div>
+                                                <div className="stat-val number-font" style={{ fontSize: '11px', color: '#10B981' }}>바로가기 ›</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="disclaimer-text" style={{ marginTop: '14px', textAlign: 'center' }}>
                                     ※ DR 성공 포인트 지급은 관리 주체 최종 확인 후 지급됩니다.
                                 </div>
                             </div>
