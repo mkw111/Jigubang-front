@@ -3,27 +3,36 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    font-family: var(--font-sans);
 }
 
 .dr-content {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
     padding: 20px;
     overflow-y: auto;
-    padding-bottom: 110px; /* Space for BottomNav */
+    padding-bottom: 120px;
 }
 
-/* DR Welcome Card */
+/* 1. Intro Welcome Card - Premium Glassmorphism & Gradient */
 .dr-welcome-card {
-    background: linear-gradient(135deg, var(--color-dr-teal) 0%, var(--color-dr-mint) 100%);
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
     border-radius: 24px;
     padding: 24px;
     color: white;
-    box-shadow: 0 8px 24px rgba(7, 150, 135, 0.2);
+    box-shadow: 0 12px 30px rgba(16, 185, 129, 0.25);
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.dr-welcome-card:hover {
+    transform: translateY(-2px);
 }
 
 .dr-welcome-top {
@@ -34,25 +43,20 @@
 
 .live-pulse {
     font-size: 10px;
-    font-weight: 800;
+    font-weight: 900;
     background: #FF5252;
     color: white;
-    padding: 2px 8px;
-    border-radius: 6px;
+    padding: 3px 8px;
+    border-radius: 20px;
     display: inline-flex;
     align-items: center;
-    animation: livePulseAnim 1.5s infinite;
-}
-
-@keyframes livePulseAnim {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.05); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 1; }
+    animation: blinkDot 1.5s infinite;
 }
 
 .dr-count-label {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 500;
 }
 
 .dr-count-label strong {
@@ -63,371 +67,318 @@
 .dr-welcome-main {
     font-size: 20px;
     font-weight: 800;
-    line-height: 1.4;
+    line-height: 1.45;
+    margin-top: 4px;
 }
 
-/* DR Dashboard stats */
-.dr-dashboard-card {
+/* 2. Guide Banner Button - Brand Matching */
+.dr-guide-banner-btn {
+    background: linear-gradient(135deg, #00A8FF 0%, #0059FF 100%) !important;
+    color: white !important;
+    padding: 18px 24px !important;
+    border-radius: 24px !important;
     display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.dr-card-title {
-    font-size: 14px;
-    font-weight: 800;
-    color: var(--color-text-dark);
-}
-
-.dr-stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-}
-
-.dr-stat-box {
-    background-color: var(--color-bg-main);
-    border-radius: 12px;
-    padding: 12px 8px;
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(0, 89, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    transition: all 0.25s ease !important;
 }
 
-.dr-box-label {
-    font-size: 9px;
-    color: var(--color-text-muted);
-    font-weight: 700;
+.dr-guide-banner-btn:active {
+    transform: scale(0.97) translateY(0) !important;
+    box-shadow: 0 4px 12px rgba(0, 89, 255, 0.15) !important;
 }
 
-.dr-box-value {
-    display: flex;
-    align-items: baseline;
-    color: var(--color-text-dark);
-}
-
-.dr-box-value .val {
-    font-size: 20px;
-}
-
-.dr-box-value.green-color {
-    color: var(--color-success);
-}
-
-.dr-box-value.blue-color {
-    color: var(--color-primary-dark);
-}
-
-.dr-box-value .unit {
-    font-size: 10px;
-    color: var(--color-text-muted);
-    font-weight: 700;
-    margin-left: 1px;
-}
-
-.dr-summary-strip {
-    display: flex;
-    justify-content: space-around;
-    border-top: 1px solid var(--color-border);
-    padding-top: 12px;
-    font-size: 11px;
-    color: var(--color-text-body);
-}
-
-.dr-summary-strip strong {
-    color: var(--color-text-dark);
-}
-
-/* DR List section */
-.dr-list-section {
+/* 3. DR Programs Card Layout */
+.dr-programs-section {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.dr-section-title {
-    font-size: 15px;
+.dr-program-card {
+    display: flex;
+    flex-direction: column;
+    padding: 20px !important;
+    border-radius: 24px !important;
+    background-color: var(--color-bg-card) !important;
+    border: 1px solid rgba(226, 226, 226, 0.6) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.02) !important;
+    gap: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.dr-program-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 30px rgba(0, 89, 255, 0.06) !important;
+    border-color: rgba(0, 89, 255, 0.2) !important;
+}
+
+.dr-program-card button {
+    border: none;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 89, 255, 0.15);
+}
+
+.dr-program-card button:active {
+    transform: scale(0.95);
+}
+
+/* 4. Stats Dashboard Styling */
+.dr-dashboard-card {
+    padding: 24px !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(226, 226, 226, 0.6) !important;
+    background-color: var(--color-bg-card) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
+}
+
+.dr-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.dr-stat-box {
+    background-color: #F8FAFC !important;
+    border-radius: 20px !important;
+    padding: 16px 12px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #F1F5F9;
+    transition: all 0.2s ease;
+}
+
+.dr-stat-box:hover {
+    background-color: #EEF8FF !important;
+    border-color: rgba(0, 89, 255, 0.1);
+}
+
+.dr-box-label {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.dr-box-value {
+    display: flex;
+    align-items: baseline;
     font-weight: 800;
     color: var(--color-text-dark);
 }
 
-.dr-list-container {
+.dr-box-value .val {
+    font-size: 24px;
+    font-family: var(--font-numeric);
+    line-height: 1;
+}
+
+.dr-box-value.green-color {
+    color: var(--color-success) !important;
+}
+
+.dr-box-value.blue-color {
+    color: var(--color-primary-dark) !important;
+}
+
+.dr-box-value .unit {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+.dr-summary-strip {
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid #F1F5F9 !important;
+    margin-top: 18px !important;
+    padding-top: 18px !important;
+    font-size: 12px !important;
+    color: var(--color-text-muted) !important;
+}
+
+.dr-summary-strip strong {
+    color: var(--color-text-dark) !important;
+    font-weight: 800;
+}
+
+/* 5. DR Challenges List & Timeline Style */
+.dr-list-section {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
 }
 
 .dr-challenge-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    margin-bottom: 0;
-    cursor: pointer;
-    transition: transform 0.2s;
+    padding: 20px 24px !important;
+    border-radius: 24px !important;
+    background-color: var(--color-bg-card) !important;
+    border: 1px solid rgba(226, 226, 226, 0.6) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01) !important;
 }
 
-.dr-challenge-item:active {
-    transform: scale(0.98);
+.dr-challenge-item:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04) !important;
+    border-color: rgba(0, 89, 255, 0.15) !important;
 }
 
 .dr-challenge-item.dimmed {
-    opacity: 0.55;
+    opacity: 0.65;
 }
 
 .challenge-left {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    flex: 1;
+    gap: 8px;
 }
 
 .badge-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .dr-badge {
-    font-size: 9px;
-    font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    padding: 3px 8px !important;
+    border-radius: 8px !important;
     color: white;
 }
 
 .dr-badge.badge-active {
-    background-color: var(--color-primary-dark);
+    background-color: #FF5252 !important;
 }
 
 .dr-badge.badge-avail {
-    background-color: var(--color-dr-teal);
+    background-color: var(--color-primary-dark) !important;
 }
 
 .dr-badge.badge-approved {
-    background-color: #FFA726;
+    background-color: #FFA726 !important;
 }
 
 .dr-badge.badge-success {
-    background-color: var(--color-success);
+    background-color: var(--color-success) !important;
 }
 
 .dr-badge.badge-failed {
-    background-color: var(--color-text-muted);
+    background-color: var(--color-text-muted) !important;
 }
 
 .chal-type {
-    font-size: 10px;
-    color: var(--color-text-light);
-    font-weight: 700;
+    font-size: 11px !important;
+    color: var(--color-text-muted) !important;
+    font-weight: 700 !important;
 }
 
 .chal-title {
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--color-text-dark);
-    line-height: 1.4;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: var(--color-text-dark) !important;
 }
 
 .chal-time {
-    font-size: 11px;
-    color: var(--color-text-muted);
+    font-size: 11px !important;
+    color: var(--color-text-muted) !important;
+    font-weight: 500;
 }
 
 .challenge-right {
     display: flex;
     align-items: baseline;
-    margin-left: 12px;
+    font-weight: 800;
 }
 
 .challenge-right .points-val {
-    font-size: 22px;
-    color: var(--color-text-dark);
+    font-size: 20px !important;
+    font-family: var(--font-numeric);
 }
 
 .challenge-right .points-val.green-color {
-    color: var(--color-success);
+    color: var(--color-success) !important;
 }
 
 .challenge-right .points-unit {
-    font-size: 12px;
-    color: var(--color-text-light);
-    font-weight: 700;
+    font-size: 11px !important;
+    color: var(--color-text-muted) !important;
+    font-weight: 700 !important;
     margin-left: 2px;
 }
 
-/* Modal Details overlay popup styling */
+/* 6. Modal / Dialog Popups Glassmorphic Backdrop */
 .modal-overlay {
-    position: absolute;
+    position: fixed !important;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    z-index: 200;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.4) !important;
+    backdrop-filter: blur(8px) !important;
+    z-index: 10000 !important;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content {
-    background-color: white;
-    width: 100%;
-    border-radius: 24px 24px 0 0;
-    padding: 24px;
-    box-sizing: border-box;
+    background-color: #FFFFFF !important;
+    width: 90% !important;
+    max-width: 380px !important;
+    border-radius: 28px !important;
+    padding: 28px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    gap: 20px;
+    box-sizing: border-box;
 }
 
 .modal-header h3 {
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--color-text-dark);
-}
-
-.close-modal-btn {
-    border: none;
-    background: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--color-text-light);
-}
-
-.modal-body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.detail-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.detail-type {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--color-text-muted);
-}
-
-.detail-title {
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--color-text-dark);
-    line-height: 1.4;
+    font-size: 17px !important;
+    font-weight: 900 !important;
+    color: #0F172A !important;
 }
 
 .detail-info-table {
-    background-color: var(--color-bg-main);
-    border-radius: 12px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.detail-info-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-}
-
-.detail-info-row .label {
-    color: var(--color-text-muted);
-}
-
-.detail-info-row .value {
-    color: var(--color-text-dark);
-    font-weight: 700;
-}
-
-.detail-info-row .value.bold {
-    font-weight: 800;
-}
-
-.detail-info-row .value.highlight {
-    color: var(--color-primary-dark);
-    font-size: 14px;
-}
-
-.detail-guideline {
-    font-size: 11px;
-    color: var(--color-warning-text);
-    line-height: 1.4;
-}
-
-.modal-footer {
-    display: flex;
-    gap: 8px;
+    background-color: #F8FAFC !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    border: 1px solid #F1F5F9 !important;
 }
 
 .modal-action-btn {
-    flex: 1;
-    height: 48px;
-    border: none;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
+    height: 52px !important;
+    border-radius: 16px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
 }
 
 .modal-action-btn.primary {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-    color: white;
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%) !important;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3) !important;
 }
 
-.modal-action-btn.danger {
-    background-color: #ECEFF1;
-    color: var(--color-text-dark);
-}
-
-.modal-action-btn.secondary {
-    background-color: var(--color-bg-main);
-    color: var(--color-text-muted);
-}
-
-/* Modal animated fade in */
-.animated-fade-in {
-    animation: modalFadeIn 0.3s ease-out forwards;
-}
-
-@keyframes modalFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.live-pulse {
-    display: inline-flex;
-    align-items: center;
-    animation: blinkDot 1.5s infinite steps(2, start);
-}
-
+/* Animations */
 @keyframes blinkDot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
-
-/* Slide Up Drawer Animation */
-.slide-up-drawer {
-    animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(100%);
-    }
-    to {
-        transform: translateY(0);
-    }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.97); }
 }
