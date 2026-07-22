@@ -12,18 +12,25 @@ const LoginPage: React.FC = () => {
     const [password, setPassword] = useState('');
 
     const handleLoginSuccess = async (data: any) => {
+        const token = data.accessToken;
+        if (token) {
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        }
+
         let aptInfo = { aptName: '지구방 아파트', dong: '', ho: '' };
-        try {
-            const aptRes = await axios.get(`/api/apt/${data.hoSeq}`);
-            if (aptRes.status === 200 && aptRes.data) {
-                aptInfo = {
-                    aptName: aptRes.data.aptName,
-                    dong: aptRes.data.dong,
-                    ho: aptRes.data.ho
-                };
+        if (data.hoSeq) {
+            try {
+                const aptRes = await axios.get(`/api/apt/${data.hoSeq}`);
+                if (aptRes.status === 200 && aptRes.data) {
+                    aptInfo = {
+                        aptName: aptRes.data.aptName || '지구방 아파트',
+                        dong: aptRes.data.dong || '',
+                        ho: aptRes.data.ho || ''
+                    };
+                }
+            } catch (err) {
+                console.warn("Apt details fetch failed, utilizing defaults", err);
             }
-        } catch (err) {
-            console.warn("Apt details fetch failed, utilizing defaults", err);
         }
 
         const isApproved = data.approved;
@@ -37,7 +44,8 @@ const LoginPage: React.FC = () => {
             ho: aptInfo.ho,
             hoSeq: data.hoSeq,
             isAuthenticated: isApproved,
-            householdsType: data.householdsType
+            householdsType: data.householdsType,
+            token: token
         }));
         navigate('/home');
     };
@@ -68,37 +76,19 @@ const LoginPage: React.FC = () => {
                             });
                             if (restoreRes.status === 200 && restoreRes.data) {
                                 alert("계정이 성공적으로 복구되었습니다!");
-                                handleLoginSuccess(restoreRes.data);
+                                await handleLoginSuccess(restoreRes.data);
                                 return;
                             }
                         } catch (restoreErr: any) {
                             alert("계정 복구 실패: " + (restoreErr.response?.data?.message || restoreErr.message));
                             return;
                         }
-                    } else {
-                        return;
                     }
                 }
 
-                // Use backend-supplied approved status directly
-                const isApproved = res.data.approved;
+                await handleLoginSuccess(res.data);
+            }else{ //200이 아닐경우
 
-                const token = res.data.accessToken;
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-                localStorage.setItem('user', JSON.stringify({
-                    uuid: res.data.uuid,
-                    name: res.data.name,
-                    phoneNumber: phoneNumber,
-                    aptName: aptInfo.aptName,
-                    dong: aptInfo.dong,
-                    ho: aptInfo.ho,
-                    hoSeq: res.data.hoSeq,
-                    isAuthenticated: isApproved,
-                    householdsType: res.data.householdsType,
-                    token: token
-                }));
-                navigate('/home');
             }
         } catch (e: any) {
             console.error("Login failed:", e);

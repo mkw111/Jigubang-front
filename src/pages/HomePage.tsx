@@ -1,72 +1,49 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState<any>({});
+
+    // Lazy initial state from localStorage to avoid initial empty render & extra re-renders
+    const [user, setUser] = useState<any>(() => {
+        try {
+            const userStr = localStorage.getItem('user');
+            return userStr ? JSON.parse(userStr) : {};
+        } catch {
+            return {};
+        }
+    });
+
     const [activeCard, setActiveCard] = useState<'energy' | 'dr'>('energy');
     const [energyMode, setEnergyMode] = useState<'billing' | 'monthly'>('billing'); // 'billing' (검침일) or 'monthly' (당월)
     const [showAuthModal, setShowAuthModal] = useState(false);
 
-    const getOfficePhone = () => {
+    const getOfficePhone = useCallback(() => {
         if (user.aptName?.includes('A단지')) return '02-123-4567';
         if (user.aptName?.includes('B단지')) return '051-987-6543';
         return '031-4760-1112'; // 기본 숲속마을 벨라시온 관리소 번호
-    };
+    }, [user.aptName]);
     
     // API states
     const [energySummary, setEnergySummary] = useState<any>({ totalUsage: 0, carbonEmission: 0, treeCount: 0 });
     const [points, setPoints] = useState<any>({ totalPoints: 0, kpxPoints: 0, gyeongnamPoints: 0 });
     const [drCardData, setDrCardData] = useState<any>(null);
     const [activeIssue, setActiveIssue] = useState<any>(null);
-
     const [memberCount, setMemberCount] = useState<number>(0);
     
-    // Load user state & sync status once on mount
+    // Check authentication on mount
     useEffect(() => {
-        const userStr = localStorage.getItem('user');
-        if (!userStr) {
-            navigate('/login');
-            return;
-        }
-        const parsedUser = JSON.parse(userStr);
-        setUser(parsedUser);
-
-        // Sync status only once on mount to prevent infinite render loops
-        if (parsedUser.uuid) {
-            const token = parsedUser.token;
-            const headers: Record<string, string> = {};
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
+        if (!user || !user.hoSeq) {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                navigate('/login');
             }
-            fetch(`/api/users/${parsedUser.uuid}/status`, { headers })
-                .then(res => {
-                    if (res.ok) {
-                        return res.json();
-                    }
-                    throw new Error("status fetch failed");
-                })
-                .then(statusData => {
-                    if (statusData) {
-                        const approved = statusData.approved;
-                        if (parsedUser.isAuthenticated !== approved || parsedUser.householdsType !== statusData.householdsType) {
-                            const updatedUser = { 
-                                ...parsedUser, 
-                                isAuthenticated: approved,
-                                householdsType: statusData.householdsType
-                            };
-                            setUser(updatedUser);
-                            localStorage.setItem('user', JSON.stringify(updatedUser));
-                        }
-                    }
-                })
-                .catch(err => console.warn("Failed to sync user status on mount", err));
         }
-    }, [navigate]);
+    }, [user, navigate]);
 
-    // Fetch dashboard data
+    // Fetch all dashboard data in parallel & sync user status concurrently
     useEffect(() => {
         const hoSeq = user.hoSeq;
         if (!hoSeq) return;
@@ -77,60 +54,90 @@ const HomePage: React.FC = () => {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const fetchData = async () => {
+        let isMounted = true;
+
+        const fetchAllDashboardData = async () => {
             try {
-                // Fetch energy summary
-                const summaryRes = await fetch(`/api/energy/summary/${hoSeq}`, { headers });
-                if (summaryRes.ok) {
-                    const data = await summaryRes.json();
+                // Execute 6 API calls in parallel via Promise.allSettled to eliminate waterfall latency
+                const [
+                    summaryRes,
+                    pointsRes,
+                    membersRes,
+                    drCardsRes,
+                    activeIssueRes,
+                    statusRes
+                ] = await Promise.allSettled([
+                    fetch(`/api/energy/summary/${hoSeq}`, { headers }),
+                    fetch(`/api/households/${hoSeq}/points`, { headers }),
+                    fetch(`/api/households/members?hoSeq=${hoSeq}`, { headers }),
+                    fetch(`/api/dr/cards`, { headers }),
+                    fetch(`/api/dr/active-issue`, { headers }),
+                    user.uuid ? fetch(`/api/users/${user.uuid}/status`, { headers }) : Promise.resolve(null)
+                ]);
+
+                if (!isMounted) return;
+
+                // 1. Energy Summary
+                if (summaryRes.status === 'fulfilled' && summaryRes.value?.ok) {
+                    const data = await summaryRes.value.json();
                     setEnergySummary(data);
                 }
 
-                // Fetch points
-                const pointsRes = await fetch(`/api/households/${hoSeq}/points`, { headers });
-                if (pointsRes.ok) {
-                    const data = await pointsRes.json();
+                // 2. Points
+                if (pointsRes.status === 'fulfilled' && pointsRes.value?.ok) {
+                    const data = await pointsRes.value.json();
                     setPoints(data);
                 }
 
-                // Fetch household members to count them dynamically
-                const membersRes = await fetch(`/api/households/members?hoSeq=${hoSeq}`, { headers });
-                if (membersRes.ok) {
-                    const data = await membersRes.json();
+                // 3. Members
+                if (membersRes.status === 'fulfilled' && membersRes.value?.ok) {
+                    const data = await membersRes.value.json();
                     if (Array.isArray(data)) {
                         const approved = data.filter((m: any) => m.approvedYn === 'Y').length;
                         setMemberCount(approved);
                     }
                 }
 
-
-
-                // Fetch DR cards (to get active and joined campaigns count)
-                const drCardsRes = await fetch(`/api/dr/cards`, { headers });
-                if (drCardsRes.ok) {
-                    const data = await drCardsRes.json();
+                // 4. DR Cards
+                if (drCardsRes.status === 'fulfilled' && drCardsRes.value?.ok) {
+                    const data = await drCardsRes.value.json();
                     setDrCardData(data);
                 }
 
-                // Fetch active DR issue if exists
-                try {
-                    const activeIssueRes = await fetch(`/api/dr/active-issue`, { headers });
-                    if (activeIssueRes.ok && activeIssueRes.status !== 204) {
-                        const data = await activeIssueRes.json();
-                        setActiveIssue(data);
-                    } else {
-                        setActiveIssue(null);
-                    }
-                } catch (e) {
-                    console.error("Failed to load active issue on home", e);
+                // 5. Active DR Issue
+                if (activeIssueRes.status === 'fulfilled' && activeIssueRes.value?.ok && activeIssueRes.value.status !== 204) {
+                    const data = await activeIssueRes.value.json();
+                    setActiveIssue(data);
+                } else if (activeIssueRes.status === 'fulfilled') {
+                    setActiveIssue(null);
                 }
 
+                // 6. Sync status
+                if (statusRes.status === 'fulfilled' && statusRes.value && statusRes.value.ok) {
+                    const statusData = await statusRes.value.json();
+                    if (statusData) {
+                        const approved = statusData.approved;
+                        if (user.isAuthenticated !== approved || user.householdsType !== statusData.householdsType) {
+                            const updatedUser = { 
+                                ...user, 
+                                isAuthenticated: approved,
+                                householdsType: statusData.householdsType
+                            };
+                            setUser(updatedUser);
+                            localStorage.setItem('user', JSON.stringify(updatedUser));
+                        }
+                    }
+                }
             } catch (e) {
                 console.error("Failed to load dashboard data from backend", e);
             }
         };
 
-        fetchData();
+        fetchAllDashboardData();
+
+        return () => {
+            isMounted = false;
+        };
     }, [user.hoSeq, user.uuid, user.token]);
 
     // Handle logout
@@ -168,7 +175,7 @@ const HomePage: React.FC = () => {
 
     const isAuthenticated = user.isAuthenticated !== false; // defaults to true
 
-    const calculateElectricBill = (usage: number) => {
+    const calculateElectricBill = useCallback((usage: number) => {
         let baseCharge = 910;
         let energyCharge = 0;
         
@@ -191,28 +198,37 @@ const HomePage: React.FC = () => {
         const fund = Math.floor((subtotal * 0.037) / 10) * 10;
         
         return Math.floor((subtotal + vat + fund) / 10) * 10;
-    };
+    }, []);
 
     const totalUsage = energySummary?.totalUsage || -1;
 
-    const currentUsage = energyMode === 'billing' ? Math.round(totalUsage) : Math.round(totalUsage * 0.7);
-    const currentCost = calculateElectricBill(currentUsage);
-    const currentLevel = currentUsage <= 200 ? 1 : currentUsage <= 400 ? 2 : 3;
-    const levelRangeText = currentLevel === 1 
-        ? "현재 누진 1구간 (0~200kWh)" 
-        : currentLevel === 2 
-            ? "현재 누진 2구간 (201~400kWh)" 
-            : "현재 누진 3구간 (400kWh 초과)";
+    const currentUsage = useMemo(() => {
+        return energyMode === 'billing' ? Math.round(totalUsage) : Math.round(totalUsage * 0.7);
+    }, [energyMode, totalUsage]);
+
+    const currentCost = useMemo(() => calculateElectricBill(currentUsage), [currentUsage, calculateElectricBill]);
+    
+    const currentLevel = useMemo(() => (currentUsage <= 200 ? 1 : currentUsage <= 400 ? 2 : 3), [currentUsage]);
+
+    const levelRangeText = useMemo(() => {
+        return currentLevel === 1 
+            ? "현재 누진 1구간 (0~200kWh)" 
+            : currentLevel === 2 
+                ? "현재 누진 2구간 (201~400kWh)" 
+                : "현재 누진 3구간 (400kWh 초과)";
+    }, [currentLevel]);
             
-    const expectedUsage = Math.round(currentUsage * 1.1);
-    const expectedCost = calculateElectricBill(expectedUsage);
+    const expectedUsage = useMemo(() => Math.round(currentUsage * 1.1), [currentUsage]);
+    const expectedCost = useMemo(() => calculateElectricBill(expectedUsage), [expectedUsage, calculateElectricBill]);
     
     // Triangle indicator positioning
-    const trianglePosition = currentLevel === 1 
-        ? `${Math.max(10, Math.min(30, (currentUsage / 200) * 30))}%` 
-        : currentLevel === 2 
-            ? `${33 + Math.max(5, Math.min(33, ((currentUsage - 200) / 200) * 33))}%` 
-            : `${66 + Math.max(5, Math.min(33, ((currentUsage - 400) / 400) * 33))}%`;
+    const trianglePosition = useMemo(() => {
+        return currentLevel === 1 
+            ? `${Math.max(10, Math.min(30, (currentUsage / 200) * 30))}%` 
+            : currentLevel === 2 
+                ? `${33 + Math.max(5, Math.min(33, ((currentUsage - 200) / 200) * 33))}%` 
+                : `${66 + Math.max(5, Math.min(33, ((currentUsage - 400) / 400) * 33))}%`;
+    }, [currentLevel, currentUsage]);
 
     const availableDrCount = (drCardData?.isPossibleKpxDr ? 1 : 0) + (drCardData?.isPossibleGyeongnamDr ? 1 : 0);
     const participatingDrCount = (drCardData?.isHouseholdsKpxDr ? 1 : 0) + (drCardData?.isHouseholdsGyeongnamDr ? 1 : 0);
@@ -240,7 +256,6 @@ const HomePage: React.FC = () => {
                             alt="지구방 로고" 
                             style={{ height: '16px', width: 'auto', objectFit: 'contain' }}
                             onError={(e) => {
-                                // Fallback to whiteBI
                                 (e.target as HTMLImageElement).src = '/image/jigubang_bi_white_fallback.png';
                             }}
                         />
@@ -514,8 +529,6 @@ const HomePage: React.FC = () => {
                         </div>
                     </div>
                 </section>
-
-
             </main>
 
             {/* 실거주 인증 요청 모달 팝업 */}
