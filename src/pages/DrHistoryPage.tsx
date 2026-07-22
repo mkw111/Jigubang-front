@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import './DrHistoryPage.css';
 
-
 const DrHistoryPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -19,6 +18,7 @@ const DrHistoryPage: React.FC = () => {
     const [activeIssue, setActiveIssue] = useState<any>(null);
     const [drSummary, setDrSummary] = useState<any>(null);
     const [drCards, setDrCards] = useState<any>(null);
+    const [recentMissions, setRecentMissions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Navigation Tab state
@@ -75,11 +75,13 @@ const DrHistoryPage: React.FC = () => {
             headers['Authorization'] = `Bearer ${token}`;
         }
         try {
-            const [activeRes, summaryRes, cardsRes] = await Promise.all([
+            const [activeRes, summaryRes, cardsRes, recentRes] = await Promise.all([
                 fetch(`/api/dr/active-issue`, { headers }),
                 fetch(`/api/dr/summary`, { headers }),
-                fetch(`/api/dr/cards`, { headers })
+                fetch(`/api/dr/cards`, { headers }),
+                fetch(`/api/dr/recent`, { headers })
             ]);
+            
             if (activeRes.ok && activeRes.status !== 204) {
                 setActiveIssue(await activeRes.json());
             } else {
@@ -90,6 +92,9 @@ const DrHistoryPage: React.FC = () => {
             }
             if (cardsRes.ok) {
                 setDrCards(await cardsRes.json());
+            }
+            if (recentRes.ok) {
+                setRecentMissions(await recentRes.json());
             }
         } catch (err) {
             console.error("Failed to load DR data", err);
@@ -230,14 +235,6 @@ const DrHistoryPage: React.FC = () => {
         refreshData();
     };
 
-    // Mock point transactions
-    const mockPointTransactions = [
-        { id: 1, type: 'use', title: '경남사랑 상품권 교환', date: '2026.06.10 11:59', change: -5000, balance: 15600 },
-        { id: 2, type: 'earn', title: '5월 국민DR 포인트 정산', date: '2026.06.01 09:00', change: 10000, balance: 20600 },
-        { id: 3, type: 'earn', title: '5월 경남DR 포인트 정산', date: '2026.06.01 09:00', change: 5000, balance: 10600 },
-        { id: 4, type: 'use', title: '네이버 페이 교환', date: '2026.05.27 21:59', change: -1000, balance: 5600 }
-    ];
-
     // Mock products catalog
     const mockProducts = [
         { id: 1, name: '네이버페이 1만원권', provider: '네이버', price: 10000, image: '/image/image08.png' },
@@ -246,17 +243,9 @@ const DrHistoryPage: React.FC = () => {
         { id: 4, name: 'GS25 모바일 상품권 2천원권', provider: 'GS25', price: 2000, image: '/image/char_08.png' }
     ];
 
-    // Mock DR Insight transactions
-    const mockInsightMissions = [
-        { id: 1, success: false, name: '국민 DR', change: -126, label: '369Wh → 243Wh', date: '2026.06.09' },
-        { id: 2, success: true, name: '국민 DR', change: 55, label: '350Wh → 295Wh', date: '2026.06.01' },
-        { id: 3, success: false, name: '경남 DR', change: -49, label: '401Wh → 352Wh', date: '2026.05.31' },
-        { id: 4, success: true, name: '경남 DR', change: 12, label: '388Wh → 400Wh', date: '2026.05.22' }
-    ];
-
     const handleProductExchange = () => {
         if (!selectedProduct) return;
-        const totalPoints = drSummary?.totalPoints || 15600;
+        const totalPoints = drCards?.totalPoint || 15600;
         if (totalPoints < selectedProduct.price) {
             alert('보유 포인트가 부족하여 교환할 수 없습니다.');
             return;
@@ -269,12 +258,10 @@ const DrHistoryPage: React.FC = () => {
         setSelectedProduct(null);
     };
 
-
-
     // Stats calculations
-    const totalParticipation = drSummary?.total || 115;
-    const totalSuccess = drSummary?.success || 67;
-    const successRate = totalParticipation > 0 ? parseFloat(((totalSuccess / totalParticipation) * 100).toFixed(1)) : 58.2;
+    const totalParticipation = drSummary?.total || 0;
+    const totalSuccess = drSummary?.success || 0;
+    const successRate = totalParticipation > 0 ? parseFloat(((totalSuccess / totalParticipation) * 100).toFixed(1)) : 0;
 
     const changeTab = (tabName: string) => {
         navigate(`/dr-history?tab=${tabName}`);
@@ -415,7 +402,7 @@ const DrHistoryPage: React.FC = () => {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <span className="number-font" style={{ fontSize: '20px', fontWeight: 900, color: '#00A8FF' }}>
-                                    {(drSummary?.totalPoints || 15600).toLocaleString()} P
+                                    {(drCards?.totalPoint || 0).toLocaleString()} P
                                 </span>
                                 <span style={{ fontSize: '18px', color: '#CBD5E1' }}>›</span>
                             </div>
@@ -636,7 +623,7 @@ const DrHistoryPage: React.FC = () => {
                                 onClick={clearCanvas}
                                 style={{ flex: 1, height: '50px', border: 'none', borderRadius: '12px', backgroundColor: '#E5E5E5', color: '#64748B', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}
                             >
-                                서명 초기화
+                                /Users/mkw111/Desktop/project/jigubang-project/jigubang-web/src/pages/LoginPage.tsx
                             </button>
                             <button 
                                 onClick={handleJoinSubmit}
@@ -708,28 +695,39 @@ const DrHistoryPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Insight timeline list */}
+                        {/* Insight timeline list linked with real api values */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {mockInsightMissions
-                                .filter(item => insightFilter === 'all' || (insightFilter === 'success' ? item.success : !item.success))
-                                .map(item => (
-                                    <div key={item.id} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: item.success ? '#ECFDF5' : '#FEF2F2', color: item.success ? '#10B981' : '#EF4444', fontWeight: 800 }}>
-                                                    {item.success ? '성공' : '실패'}
-                                                </span>
-                                                <strong style={{ fontSize: '13px', color: '#1E293B' }}>{item.name} 미션</strong>
+                            {recentMissions
+                                .filter(item => {
+                                    const isSuccess = item.result.includes('+');
+                                    return insightFilter === 'all' || (insightFilter === 'success' ? isSuccess : !isSuccess);
+                                })
+                                .map((item, idx) => {
+                                    const isSuccess = item.result.includes('+');
+                                    return (
+                                        <div key={idx} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: isSuccess ? '#ECFDF5' : '#FEF2F2', color: isSuccess ? '#10B981' : '#EF4444', fontWeight: 800 }}>
+                                                        {isSuccess ? '성공' : '실패'}
+                                                    </span>
+                                                    <strong style={{ fontSize: '13px', color: '#1E293B' }}>{item.dr}</strong>
+                                                </div>
+                                                <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.period}</span>
                                             </div>
-                                            <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.date} | {item.label}</span>
+                                            <div>
+                                                <span className="number-font" style={{ fontSize: '15px', fontWeight: 900, color: isSuccess ? '#10B981' : '#EF4444' }}>
+                                                    {item.result}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <span className="number-font" style={{ fontSize: '16px', fontWeight: 900, color: item.change > 0 ? '#10B981' : '#EF4444' }}>
-                                                {item.change > 0 ? `+${item.change} Wh` : `${item.change} Wh`}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
+                            {recentMissions.length === 0 && (
+                                <div style={{ padding: '30px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
+                                    인사이트 분석 대상 이력이 존재하지 않습니다.
+                                </div>
+                            )}
                         </div>
                     </main>
                     <BottomNav />
@@ -1025,11 +1023,11 @@ const DrHistoryPage: React.FC = () => {
                         <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(0, 114, 255, 0.25)', marginBottom: '20px' }}>
                             <span style={{ fontSize: '12px', opacity: 0.9 }}>통합 보유 포인트</span>
                             <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
-                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900 }}>{(drSummary?.totalPoints || 15600).toLocaleString()}</span>
+                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900 }}>{(drCards?.totalPoint || 0).toLocaleString()}</span>
                                 <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Point</span>
                             </div>
                             <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '10px' }}>
-                                누적 적립 {((drSummary?.totalPoints || 15600) + 12000).toLocaleString()} P · 누적 사용 12,000 P
+                                누적 적립 {((drCards?.totalPoint || 0) + 6000).toLocaleString()} P · 누적 사용 6,000 P
                             </div>
                         </div>
 
@@ -1054,23 +1052,31 @@ const DrHistoryPage: React.FC = () => {
                             </button>
                         </div>
 
+                        {/* Point logs mapping with actual dr history response list */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {mockPointTransactions
-                                .filter(item => pointFilter === 'all' || item.type === pointFilter)
-                                .map(item => (
-                                    <div key={item.id} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            {recentMissions
+                                .filter(item => {
+                                    const isEarn = item.result.includes('+');
+                                    return pointFilter === 'all' || (pointFilter === 'earn' ? isEarn : !isEarn);
+                                })
+                                .map((item, idx) => (
+                                    <div key={idx} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <strong style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>{item.title}</strong>
-                                            <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.date}</span>
+                                            <strong style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>{item.dr} 미션 정산</strong>
+                                            <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.period}</span>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
-                                            <span className="number-font" style={{ fontSize: '16px', fontWeight: 900, color: item.change > 0 ? '#10B981' : '#EF4444' }}>
-                                                {item.change > 0 ? `+${item.change.toLocaleString()}` : item.change.toLocaleString()} P
+                                            <span className="number-font" style={{ fontSize: '16px', fontWeight: 900, color: item.result.includes('+') ? '#10B981' : '#EF4444' }}>
+                                                {item.result}
                                             </span>
-                                            <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>잔액: {item.balance.toLocaleString()}P</div>
                                         </div>
                                     </div>
                                 ))}
+                            {recentMissions.length === 0 && (
+                                <div style={{ padding: '30px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
+                                    포인트 정산 및 적립 내역이 존재하지 않습니다.
+                                </div>
+                            )}
                         </div>
                     </main>
                     <BottomNav />
@@ -1092,7 +1098,7 @@ const DrHistoryPage: React.FC = () => {
                     <main className="app-content dr-content" style={{ padding: '16px' }}>
                         <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>나의 보유 포인트</span>
-                            <strong className="number-font" style={{ fontSize: '15px', color: '#0072FF' }}>{(drSummary?.totalPoints || 15600).toLocaleString()} P</strong>
+                            <strong className="number-font" style={{ fontSize: '15px', color: '#0072FF' }}>{(drCards?.totalPoint || 0).toLocaleString()} P</strong>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
