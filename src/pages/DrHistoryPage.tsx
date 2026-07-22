@@ -30,6 +30,9 @@ const DrHistoryPage: React.FC = () => {
     const [joinSubTab, setJoinSubTab] = useState<'joined' | 'unjoined'>('joined');
     const [pointFilter, setPointFilter] = useState<'all' | 'use' | 'earn'>('all');
     const [insightFilter, setInsightFilter] = useState<'all' | 'success' | 'failed'>('all');
+    const [slideIndex, setSlideIndex] = useState<number>(0);
+    const touchStartX = useRef<number>(0);
+    const touchEndX = useRef<number>(0);
 
     // UI Interactive states
     const [joinStep, setJoinStep] = useState<'main' | 'agreement'>('main');
@@ -421,6 +424,19 @@ const DrHistoryPage: React.FC = () => {
     // Live reduction Wh calculations
     const totalReductionWh = recentMissions.reduce((acc: number, item: any) => acc + (item.reductionWh || 0), 0);
     const liveReduction = 11800 + totalReductionWh;
+
+    // Program-specific dynamic energy reduction stats
+    const kpxMissions = recentMissions.filter((item: any) => item.dr.includes('국민'));
+    const kpxSuccessCount = kpxMissions.filter((item: any) => item.result.includes('+')).length;
+    const kpxReductionWh = 10000 + kpxMissions.reduce((acc: number, item: any) => acc + (item.reductionWh || 0), 0);
+
+    const gnMissions = recentMissions.filter((item: any) => item.dr.includes('경남'));
+    const gnSuccessCount = gnMissions.filter((item: any) => item.result.includes('+')).length;
+    const gnReductionWh = 1800 + gnMissions.reduce((acc: number, item: any) => acc + (item.reductionWh || 0), 0);
+
+    const gmMissions = recentMissions.filter((item: any) => item.dr.includes('광명'));
+    const gmSuccessCount = gmMissions.filter((item: any) => item.result.includes('+')).length;
+    const gmReductionWh = 0;
 
     const changeTab = (tabName: string) => {
         navigate(`/dr-history?tab=${tabName}`);
@@ -818,59 +834,192 @@ const DrHistoryPage: React.FC = () => {
 
             {/* ======================================================== */}
             {/* 3. TAB: insight (나의 DR 인사이트 상세 페이지 - PDF Page 5 Screen 19) */}
-            {activeTab === 'insight' && (
-                <>
-                    <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
-                        <button className="back-btn" onClick={() => changeTab('index')}>
-                            <span>‹</span>
-                        </button>
-                        <h2>DR 인사이트</h2>
-                        <div className="header-placeholder"></div>
-                    </header>
+            {activeTab === 'insight' && (() => {
+                // Swipe gesture values
 
-                    <main className="app-content dr-content" style={{ padding: '20px' }}>
-                        {/* Blue Energy Reduction Card */}
-                        <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.25)', marginBottom: '20px' }}>
-                            <span style={{ fontSize: '12px', opacity: 0.9 }}>나의 DR 누적 절감 성과</span>
-                            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
-                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900, color: '#00A8FF' }}>-{liveReduction.toLocaleString()}</span>
-                                <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Wh 절감</span>
+                const handleTouchStart = (e: React.TouchEvent) => {
+                    touchStartX.current = e.targetTouches[0].clientX;
+                };
+                const handleTouchMove = (e: React.TouchEvent) => {
+                    touchEndX.current = e.targetTouches[0].clientX;
+                };
+                const handleTouchEnd = () => {
+                    if (touchStartX.current - touchEndX.current > 50) {
+                        // Swipe left -> Next slide
+                        setSlideIndex((prev) => Math.min(prev + 1, 3));
+                    }
+                    if (touchStartX.current - touchEndX.current < -50) {
+                        // Swipe right -> Prev slide
+                        setSlideIndex((prev) => Math.max(prev - 0, 0));
+                    }
+                };
+
+                const nextSlide = () => setSlideIndex((prev) => Math.min(prev + 1, 3));
+                const prevSlide = () => setSlideIndex((prev) => Math.max(prev - 1, 0));
+
+                // Slide specific filter lists
+                const slideDRTypes = ['ALL', '국민', '경남', '광명'];
+                const currentDRType = slideDRTypes[slideIndex];
+
+                const filteredMissions = recentMissions.filter((item: any) => {
+                    if (currentDRType === 'ALL') return true;
+                    return item.dr.includes(currentDRType);
+                });
+
+                const finalFiltered = filteredMissions.filter((item: any) => {
+                    const isSuccess = item.result.includes('+');
+                    return insightFilter === 'all' || (insightFilter === 'success' ? isSuccess : !isSuccess);
+                });
+
+                return (
+                    <>
+                        <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                            <button className="back-btn" onClick={() => changeTab('index')}>
+                                <span>‹</span>
+                            </button>
+                            <h2>DR 인사이트</h2>
+                            <div className="header-placeholder"></div>
+                        </header>
+
+                        <main className="app-content dr-content" style={{ padding: '20px' }}>
+                            
+                            {/* 📱 4-Slide Swipeable Carousel Container */}
+                            <div 
+                                className="dr-carousel-outer"
+                                onTouchStart={handleTouchStart}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={handleTouchEnd}
+                                style={{ position: 'relative', overflow: 'hidden', width: '100%', borderRadius: '24px', marginBottom: '14px' }}
+                            >
+                                <div 
+                                    className="dr-carousel-inner"
+                                    style={{ 
+                                        display: 'flex', 
+                                        transform: `translateX(-${slideIndex * 100}%)`, 
+                                        transition: 'transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)', 
+                                        width: '400%' 
+                                    }}
+                                >
+                                    {/* Slide 0: 전체 DR */}
+                                    <div style={{ width: '25%', flexShrink: 0, padding: '4px' }}>
+                                        <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', position: 'relative', height: '124px' }}>
+                                            <span style={{ fontSize: '12px', opacity: 0.9 }}>나의 DR 누적 절감 성과 (전체)</span>
+                                            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
+                                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900, color: '#00A8FF' }}>-{liveReduction.toLocaleString()}</span>
+                                                <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Wh 절감</span>
+                                            </div>
+                                            <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '10px' }}>
+                                                누적 참여 {totalParticipation}회 중 {totalSuccess}회 성공 달성
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Slide 1: 국민DR */}
+                                    <div style={{ width: '25%', flexShrink: 0, padding: '4px' }}>
+                                        <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #00A8FF 0%, #0059FF 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', position: 'relative', height: '124px' }}>
+                                            <span style={{ fontSize: '12px', opacity: 0.9 }}>나의 DR 누적 절감 성과 (국민DR)</span>
+                                            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
+                                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900, color: '#FFF3C4' }}>-{kpxReductionWh.toLocaleString()}</span>
+                                                <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Wh 절감</span>
+                                            </div>
+                                            <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '10px' }}>
+                                                누적 참여 {kpxMissions.length}회 중 {kpxSuccessCount}회 성공 달성
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Slide 2: 경남DR */}
+                                    <div style={{ width: '25%', flexShrink: 0, padding: '4px' }}>
+                                        <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', position: 'relative', height: '124px' }}>
+                                            <span style={{ fontSize: '12px', opacity: 0.9 }}>나의 DR 누적 절감 성과 (경남DR)</span>
+                                            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
+                                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900, color: '#FFFFFF' }}>-{gnReductionWh.toLocaleString()}</span>
+                                                <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Wh 절감</span>
+                                            </div>
+                                            <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '10px' }}>
+                                                누적 참여 {gnMissions.length}회 중 {gnSuccessCount}회 성공 달성
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Slide 3: 광명DR */}
+                                    <div style={{ width: '25%', flexShrink: 0, padding: '4px' }}>
+                                        <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #94A3B8 0%, #64748B 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', position: 'relative', height: '124px' }}>
+                                            <span style={{ fontSize: '12px', opacity: 0.9 }}>나의 DR 누적 절감 성과 (광명DR)</span>
+                                            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
+                                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900, color: '#F1F5F9' }}>-{gmReductionWh.toLocaleString()}</span>
+                                                <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Wh 절감</span>
+                                            </div>
+                                            <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '10px' }}>
+                                                누적 참여 {gmMissions.length}회 중 {gmSuccessCount}회 성공 달성 (미신청)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ‹ Arrow Button Left */}
+                                {slideIndex > 0 && (
+                                    <button 
+                                        onClick={prevSlide}
+                                        style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'rgba(0,0,0,0.3)', color: 'white', width: '28px', height: '28px', borderRadius: '50%', fontSize: '16px', fontWeight: 800, cursor: 'pointer', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        ‹
+                                    </button>
+                                )}
+                                {/* › Arrow Button Right */}
+                                {slideIndex < 3 && (
+                                    <button 
+                                        onClick={nextSlide}
+                                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'rgba(0,0,0,0.3)', color: 'white', width: '28px', height: '28px', borderRadius: '50%', fontSize: '16px', fontWeight: 800, cursor: 'pointer', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        ›
+                                    </button>
+                                )}
                             </div>
-                            <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '10px' }}>
-                                누적 참여 {totalParticipation}회 중 {totalSuccess}회 성공 달성 (달성률 {totalParticipation > 0 ? Math.round((totalSuccess / totalParticipation) * 100) : 0}%)
+
+                            {/* ⚪ Dot Indicators */}
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}>
+                                {[0, 1, 2, 3].map((idx) => (
+                                    <span 
+                                        key={idx}
+                                        onClick={() => setSlideIndex(idx)}
+                                        style={{ 
+                                            width: slideIndex === idx ? '18px' : '6px', 
+                                            height: '6px', 
+                                            borderRadius: '3px', 
+                                            backgroundColor: slideIndex === idx ? '#3B82F6' : '#CBD5E1', 
+                                            transition: 'all 0.3s ease',
+                                            cursor: 'pointer' 
+                                        }}
+                                    />
+                                ))}
                             </div>
-                        </div>
 
-                        {/* Filter chip switcher */}
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                            <button 
-                                onClick={() => setInsightFilter('all')}
-                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'all' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'all' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
-                            >
-                                전체 ({recentMissions.length})
-                            </button>
-                            <button 
-                                onClick={() => setInsightFilter('success')}
-                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'success' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'success' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
-                            >
-                                성공 ({recentMissions.filter(m => m.result.includes('+')).length})
-                            </button>
-                            <button 
-                                onClick={() => setInsightFilter('failed')}
-                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'failed' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'failed' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
-                            >
-                                실패 ({recentMissions.filter(m => !m.result.includes('+')).length})
-                            </button>
-                        </div>
+                            {/* Filter chip switcher */}
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                <button 
+                                    onClick={() => setInsightFilter('all')}
+                                    style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'all' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'all' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                >
+                                    전체 ({filteredMissions.length})
+                                </button>
+                                <button 
+                                    onClick={() => setInsightFilter('success')}
+                                    style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'success' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'success' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                >
+                                    성공 ({filteredMissions.filter((m: any) => m.result.includes('+')).length})
+                                </button>
+                                <button 
+                                    onClick={() => setInsightFilter('failed')}
+                                    style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'failed' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'failed' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                                >
+                                    실패 ({filteredMissions.filter((m: any) => !m.result.includes('+')).length})
+                                </button>
+                            </div>
 
-                        {/* Insight timeline list linked with real api values */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {recentMissions
-                                .filter(item => {
-                                    const isSuccess = item.result.includes('+');
-                                    return insightFilter === 'all' || (insightFilter === 'success' ? isSuccess : !isSuccess);
-                                })
-                                .map((item, idx) => {
+                            {/* Insight timeline list linked with real api values */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {finalFiltered.map((item: any, idx: number) => {
                                     const isSuccess = item.result.includes('+');
                                     return (
                                         <div 
@@ -897,17 +1046,17 @@ const DrHistoryPage: React.FC = () => {
                                         </div>
                                     );
                                 })}
-                            {recentMissions.length === 0 && (
-                                <div style={{ padding: '30px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
-                                    인사이트 분석 대상 이력이 존재하지 않습니다.
-                                </div>
-                            )}
-                        </div>
-                    </main>
-                    <BottomNav />
-                </>
-            )}
-
+                                {finalFiltered.length === 0 && (
+                                    <div style={{ padding: '30px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
+                                        해당 카테고리의 분석 대상 이력이 존재하지 않습니다.
+                                    </div>
+                                )}
+                            </div>
+                        </main>
+                        <BottomNav />
+                    </>
+                );
+            })()}
             {/* ======================================================== */}
             {/* 4. TAB: join-status (참여 중인 나의 DR 상세 페이지 - Page 6) */}
             {activeTab === 'join-status' && (
