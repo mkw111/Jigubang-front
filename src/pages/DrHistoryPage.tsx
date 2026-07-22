@@ -3,24 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import './DrHistoryPage.css';
 
-interface DRChallenge {
-    id: number;
-    title: string;
-    type: string;
-    points: number;
-    status: 'participating' | 'available' | 'approved' | 'success' | 'failed';
-    date: string;
-    time: string;
-    targetReduction: string;
-}
 
 const DrHistoryPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Parse tab query parameter (?tab=active | join-status | points | shop)
+    // Parse tab query parameter (?tab=index | active | insight | join-status | points | shop)
     const queryParams = new URLSearchParams(location.search);
-    const initialTab = queryParams.get('tab') || 'active';
+    const initialTab = queryParams.get('tab') || 'index';
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -31,14 +21,13 @@ const DrHistoryPage: React.FC = () => {
     const [drCards, setDrCards] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    // Tab state (active, join-status, points, shop)
+    // Navigation Tab state
     const [activeTab, setActiveTab] = useState<string>(initialTab);
 
-    // Inside join-status tab: sub-tab (joined vs unjoined)
+    // sub-tab & filter states
     const [joinSubTab, setJoinSubTab] = useState<'joined' | 'unjoined'>('joined');
-
-    // Inside points tab: filter (all, use, earn)
     const [pointFilter, setPointFilter] = useState<'all' | 'use' | 'earn'>('all');
+    const [insightFilter, setInsightFilter] = useState<'all' | 'success' | 'failed'>('all');
 
     // UI Interactive states
     const [joinStep, setJoinStep] = useState<'main' | 'agreement'>('main');
@@ -57,11 +46,13 @@ const DrHistoryPage: React.FC = () => {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [showShopSuccess, setShowShopSuccess] = useState(false);
 
-    // Load initial tab from URL if it changes
+    // Synchronize activeTab state with URL tab query string
     useEffect(() => {
         const tab = new URLSearchParams(location.search).get('tab');
         if (tab) {
             setActiveTab(tab);
+        } else {
+            setActiveTab('index');
         }
     }, [location.search]);
 
@@ -84,10 +75,9 @@ const DrHistoryPage: React.FC = () => {
             headers['Authorization'] = `Bearer ${token}`;
         }
         try {
-            const [activeRes, summaryRes, recentRes, cardsRes] = await Promise.all([
+            const [activeRes, summaryRes, cardsRes] = await Promise.all([
                 fetch(`/api/dr/active-issue`, { headers }),
                 fetch(`/api/dr/summary`, { headers }),
-                fetch(`/api/dr/recent`, { headers }),
                 fetch(`/api/dr/cards`, { headers })
             ]);
             if (activeRes.ok && activeRes.status !== 204) {
@@ -97,9 +87,6 @@ const DrHistoryPage: React.FC = () => {
             }
             if (summaryRes.ok) {
                 setDrSummary(await summaryRes.json());
-            }
-            if (recentRes.ok) {
-                // Not mapped directly to state in this view
             }
             if (cardsRes.ok) {
                 setDrCards(await cardsRes.json());
@@ -243,7 +230,7 @@ const DrHistoryPage: React.FC = () => {
         refreshData();
     };
 
-    // Mock points transactions
+    // Mock point transactions
     const mockPointTransactions = [
         { id: 1, type: 'use', title: '경남사랑 상품권 교환', date: '2026.06.10 11:59', change: -5000, balance: 15600 },
         { id: 2, type: 'earn', title: '5월 국민DR 포인트 정산', date: '2026.06.01 09:00', change: 10000, balance: 20600 },
@@ -257,6 +244,14 @@ const DrHistoryPage: React.FC = () => {
         { id: 2, name: '투썸 아메리카노(R)', provider: '투썸플레이스', price: 4500, image: '/image/char_02.png' },
         { id: 3, name: '스타벅스 아메리카노(Tall)', provider: '스타벅스', price: 4500, image: '/image/char_05.png' },
         { id: 4, name: 'GS25 모바일 상품권 2천원권', provider: 'GS25', price: 2000, image: '/image/char_08.png' }
+    ];
+
+    // Mock DR Insight transactions
+    const mockInsightMissions = [
+        { id: 1, success: false, name: '국민 DR', change: -126, label: '369Wh → 243Wh', date: '2026.06.09' },
+        { id: 2, success: true, name: '국민 DR', change: 55, label: '350Wh → 295Wh', date: '2026.06.01' },
+        { id: 3, success: false, name: '경남 DR', change: -49, label: '401Wh → 352Wh', date: '2026.05.31' },
+        { id: 4, success: true, name: '경남 DR', change: 12, label: '388Wh → 400Wh', date: '2026.05.22' }
     ];
 
     const handleProductExchange = () => {
@@ -274,6 +269,17 @@ const DrHistoryPage: React.FC = () => {
         setSelectedProduct(null);
     };
 
+
+
+    // Stats calculations
+    const totalParticipation = drSummary?.total || 115;
+    const totalSuccess = drSummary?.success || 67;
+    const successRate = totalParticipation > 0 ? parseFloat(((totalSuccess / totalParticipation) * 100).toFixed(1)) : 58.2;
+
+    const changeTab = (tabName: string) => {
+        navigate(`/dr-history?tab=${tabName}`);
+    };
+
     if (loading) {
         return (
             <div className="page-container dr-wrapper" style={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -285,12 +291,171 @@ const DrHistoryPage: React.FC = () => {
     return (
         <div className="page-container dr-wrapper" style={{ backgroundColor: '#F8FAFC', position: 'relative' }}>
             
-            {/* 1. TAB: active (오늘의 DR 발령 상세 페이지 - Page 4) */}
+            {/* ======================================================== */}
+            {/* 1. INDEX: DR Main Portal Page (PDF Page 1 Screen 17) */}
+            {activeTab === 'index' && (
+                <>
+                    <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                        <button className="back-btn" onClick={() => navigate('/home')}>
+                            <span>‹</span>
+                        </button>
+                        <h2>수요반응 (DR)</h2>
+                        <div className="header-placeholder"></div>
+                    </header>
+
+                    <main className="app-content dr-content" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        
+                        {/* 1. 웰컴 라이브 카드 */}
+                        <div className="dr-welcome-card" style={{ padding: '20px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', zIndex: 2 }}>
+                                <div className="dr-welcome-top">
+                                    <span className="live-pulse">🔴 LIVE</span>
+                                    <span className="dr-count-label">오늘의 DR 발령 <strong>{activeIssue ? '진행 중' : '대기 중'}</strong></span>
+                                </div>
+                                <div className="dr-welcome-main" style={{ fontSize: '18px' }}>
+                                    잠깐의 절전으로<br />지구를 구해 볼까요?
+                                </div>
+                            </div>
+                            <img 
+                                src="/image/jigubang_3d_ani.gif" 
+                                alt="지구방 3D" 
+                                style={{ width: '70px', height: '70px', objectFit: 'contain', zIndex: 2 }} 
+                                onError={(e) => { (e.target as HTMLImageElement).src = '/image/jigubang_3d.png'; }}
+                            />
+                        </div>
+
+                        {/* 2. 오늘의 발령 요약 카드 (Page 4 인덱스형) */}
+                        <div 
+                            className="card dr-index-card" 
+                            onClick={() => changeTab('active')}
+                            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '18px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                        >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '18px' }}>📅</span>
+                                    <strong style={{ fontSize: '15px', color: '#1E293B' }}>오늘의 DR 발령</strong>
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748B', display: 'flex', gap: '10px', marginTop: '4px' }}>
+                                    <span>누적 참여: <strong>{totalParticipation}회</strong></span>
+                                    <span>누적 성공: <strong>{totalSuccess}회</strong></span>
+                                    <span>성공률: <strong>{successRate}%</strong></span>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ border: '2px solid #FF5252', borderRadius: '8px', padding: '4px 10px', textAlign: 'center', minWidth: '40px' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 900, color: '#FF5252' }}>{activeIssue ? '1' : '0'}</div>
+                                    <div style={{ fontSize: '9px', color: '#FF5252', fontWeight: 700 }}>오늘 발령</div>
+                                </div>
+                                <span style={{ fontSize: '18px', color: '#CBD5E1' }}>›</span>
+                            </div>
+                        </div>
+
+                        {/* 3. 나의 DR 인사이트 요약 카드 (Page 5 인덱스형) */}
+                        <div 
+                            className="card dr-index-card" 
+                            onClick={() => changeTab('insight')}
+                            style={{ background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', color: 'white', borderRadius: '24px', padding: '20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)' }}
+                        >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '18px' }}>📊</span>
+                                    <strong style={{ fontSize: '15px', color: '#FFFFFF' }}>나의 DR 인사이트</strong>
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                                    감축 성공 및 실패 에너지 흐름 분석
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ textAlign: 'right' }}>
+                                    <span className="number-font" style={{ fontSize: '18px', fontWeight: 900, color: '#00A8FF' }}>-12,194</span>
+                                    <span style={{ fontSize: '10px', marginLeft: '2px', color: '#94A3B8' }}>Wh 절감</span>
+                                </div>
+                                <span style={{ fontSize: '18px', color: '#64748B' }}>›</span>
+                            </div>
+                        </div>
+
+                        {/* 4. 참여 중인 나의 DR 요약 카드 (Page 6 인덱스형) */}
+                        <div 
+                            className="card dr-index-card" 
+                            onClick={() => changeTab('join-status')}
+                            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '18px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                        >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '18px' }}>📝</span>
+                                    <strong style={{ fontSize: '15px', color: '#1E293B' }}>참여 중인 나의 DR</strong>
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748B', display: 'flex', gap: '10px', marginTop: '4px' }}>
+                                    <span>신청가능: <strong>3개</strong></span>
+                                    <span>승인완료: <strong>{(drCards?.isHouseholdsKpxDr ? 1 : 0) + (drCards?.isHouseholdsGyeongnamDr ? 1 : 0)}개</strong></span>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span className="number-font" style={{ fontSize: '24px', fontWeight: 900, color: '#0072FF' }}>
+                                    {(drCards?.isHouseholdsKpxDr ? 1 : 0) + (drCards?.isHouseholdsGyeongnamDr ? 1 : 0)}
+                                </span>
+                                <span style={{ fontSize: '18px', color: '#CBD5E1' }}>›</span>
+                            </div>
+                        </div>
+
+                        {/* 5. 나의 DR 포인트 요약 카드 (Page 7 인덱스형) */}
+                        <div 
+                            className="card dr-index-card" 
+                            onClick={() => changeTab('points')}
+                            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '18px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                        >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '18px' }}>⭐</span>
+                                    <strong style={{ fontSize: '15px', color: '#1E293B' }}>나의 DR 포인트</strong>
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
+                                    포인트 적립 및 기프티콘 사용 로그
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span className="number-font" style={{ fontSize: '20px', fontWeight: 900, color: '#00A8FF' }}>
+                                    {(drSummary?.totalPoints || 15600).toLocaleString()} P
+                                </span>
+                                <span style={{ fontSize: '18px', color: '#CBD5E1' }}>›</span>
+                            </div>
+                        </div>
+
+                        {/* 6. 포인트 쇼핑 바로가기 카드 배너 */}
+                        <div 
+                            className="card dr-guide-banner-btn" 
+                            onClick={() => changeTab('shop')}
+                            style={{ marginTop: '4px' }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '20px' }}>🛍️</span>
+                                <strong style={{ fontSize: '14px', fontWeight: 800 }}>포인트 쇼핑 바로가기</strong>
+                            </div>
+                            <span style={{ fontSize: '16px', fontWeight: 700 }}>이동하기 ›</span>
+                        </div>
+
+                        {/* 7. 참여 방법 가이드북 배너 */}
+                        <div 
+                            className="card" 
+                            onClick={() => setShowGuide(true)}
+                            style={{ backgroundColor: '#F1F5F9', border: 'none', padding: '16px 20px', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                        >
+                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>💡 수요반응 참여 방법 가이드북 열기</span>
+                            <span style={{ fontSize: '14px', color: '#94A3B8' }}>›</span>
+                        </div>
+
+                    </main>
+                    <BottomNav />
+                </>
+            )}
+
+            {/* ======================================================== */}
+            {/* 2. TAB: active (오늘의 DR 발령 상세 페이지 - Page 4) */}
             {activeTab === 'active' && (
                 joinStep === 'main' ? (
                     <>
                         <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
-                            <button className="back-btn" onClick={() => navigate(-1)}>
+                            <button className="back-btn" onClick={() => changeTab('index')}>
                                 <span>‹</span>
                             </button>
                             <h2>오늘의 DR 발령</h2>
@@ -298,15 +463,12 @@ const DrHistoryPage: React.FC = () => {
                         </header>
 
                         <main className="app-content dr-content" style={{ padding: '20px' }}>
-                            {/* Today date indicator */}
                             <div style={{ textAlign: 'center', fontSize: '15px', fontWeight: 800, color: '#1E293B', marginBottom: '16px' }}>
                                 {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
                             </div>
 
-                            {/* Active Issue Cards or Empty state */}
                             {activeIssue ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                    {/* Ongoing issue (Figma ongoing/blue card spec) */}
                                     <div className="card dr-active-card-item ongoing" style={{ background: 'linear-gradient(135deg, #00A8FF 0%, #0059FF 100%)', color: 'white', padding: '20px', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 24px rgba(0, 168, 255, 0.2)' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                             <span style={{ fontSize: '11px', fontWeight: 800, backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '10px', width: 'fit-content' }}>
@@ -328,7 +490,6 @@ const DrHistoryPage: React.FC = () => {
                                     </div>
                                 </div>
                             ) : (
-                                /* Empty 발령 상태 (Page 4) */
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center', gap: '16px' }}>
                                     <div style={{ position: 'relative', width: '90px', height: '90px' }}>
                                         <img src="/image/char_02.png" alt="Cat Mascot" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -339,7 +500,6 @@ const DrHistoryPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Info Guide method process */}
                             <div style={{ marginTop: '30px', textAlign: 'center' }}>
                                 <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 700 }}>
                                     ※ 참여 가능 미신청 DR 캠페인은 신청 승인 후 참여 가능합니다.
@@ -347,7 +507,6 @@ const DrHistoryPage: React.FC = () => {
                             </div>
                         </main>
 
-                        {/* Floating bottom action bar */}
                         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 20px 24px 20px', backgroundColor: '#FFFFFF', borderTop: '1px solid #F1F5F9', zIndex: 100 }}>
                             <button 
                                 onClick={() => setIsBottomSheetOpen(true)}
@@ -357,7 +516,6 @@ const DrHistoryPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Bottom Sheet for Campaign selection (Page 5) */}
                         {isBottomSheetOpen && (
                             <div className="modal-overlay animated-fade-in" onClick={() => setIsBottomSheetOpen(false)} style={{ zIndex: 11000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                                 <div className="drawer-content slide-up-drawer" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', borderTopLeftRadius: '30px', borderTopRightRadius: '30px', padding: '24px 24px 40px 24px', backgroundColor: '#FFFFFF', boxShadow: '0 -8px 30px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
@@ -399,7 +557,7 @@ const DrHistoryPage: React.FC = () => {
                         <BottomNav />
                     </>
                 ) : (
-                    /* eformsign signature Canvas view */
+                    /* Canvas signature view */
                     <>
                         <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
                             <button className="back-btn" onClick={() => setJoinStep('main')}>
@@ -503,19 +661,94 @@ const DrHistoryPage: React.FC = () => {
                 )
             )}
 
-            {/* 2. TAB: join-status (참여 중인 나의 DR 상세 페이지 - Page 6) */}
+            {/* ======================================================== */}
+            {/* 3. TAB: insight (나의 DR 인사이트 상세 페이지 - PDF Page 5 Screen 19) */}
+            {activeTab === 'insight' && (
+                <>
+                    <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
+                        <button className="back-btn" onClick={() => changeTab('index')}>
+                            <span>‹</span>
+                        </button>
+                        <h2>DR 인사이트</h2>
+                        <div className="header-placeholder"></div>
+                    </header>
+
+                    <main className="app-content dr-content" style={{ padding: '20px' }}>
+                        {/* Blue Energy Reduction Card */}
+                        <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.25)', marginBottom: '20px' }}>
+                            <span style={{ fontSize: '12px', opacity: 0.9 }}>나의 DR 인사이트</span>
+                            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
+                                <span className="number-font" style={{ fontSize: '28px', fontWeight: 900, color: '#00A8FF' }}>-12,194</span>
+                                <span style={{ fontSize: '14px', fontWeight: 700, marginLeft: '4px' }}>Wh 절감</span>
+                            </div>
+                            <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '10px' }}>
+                                누적 참여 {totalParticipation}회 중 {totalSuccess}회 성공 달성
+                            </div>
+                        </div>
+
+                        {/* Filter chip switcher */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                            <button 
+                                onClick={() => setInsightFilter('all')}
+                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'all' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'all' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                            >
+                                전체
+                            </button>
+                            <button 
+                                onClick={() => setInsightFilter('success')}
+                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'success' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'success' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                            >
+                                성공
+                            </button>
+                            <button 
+                                onClick={() => setInsightFilter('failed')}
+                                style={{ border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: 800, backgroundColor: insightFilter === 'failed' ? '#00A8FF' : '#E2E8F0', color: insightFilter === 'failed' ? '#FFFFFF' : '#64748B', cursor: 'pointer' }}
+                            >
+                                실패
+                            </button>
+                        </div>
+
+                        {/* Insight timeline list */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {mockInsightMissions
+                                .filter(item => insightFilter === 'all' || (insightFilter === 'success' ? item.success : !item.success))
+                                .map(item => (
+                                    <div key={item.id} className="card point-tx-item" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: item.success ? '#ECFDF5' : '#FEF2F2', color: item.success ? '#10B981' : '#EF4444', fontWeight: 800 }}>
+                                                    {item.success ? '성공' : '실패'}
+                                                </span>
+                                                <strong style={{ fontSize: '13px', color: '#1E293B' }}>{item.name} 미션</strong>
+                                            </div>
+                                            <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.date} | {item.label}</span>
+                                        </div>
+                                        <div>
+                                            <span className="number-font" style={{ fontSize: '16px', fontWeight: 900, color: item.change > 0 ? '#10B981' : '#EF4444' }}>
+                                                {item.change > 0 ? `+${item.change} Wh` : `${item.change} Wh`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
+                    </main>
+                    <BottomNav />
+                </>
+            )}
+
+            {/* ======================================================== */}
+            {/* 4. TAB: join-status (참여 중인 나의 DR 상세 페이지 - Page 6) */}
             {activeTab === 'join-status' && (
                 joinStep === 'main' ? (
                     <>
                         <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
-                            <button className="back-btn" onClick={() => navigate(-1)}>
+                            <button className="back-btn" onClick={() => changeTab('index')}>
                                 <span>‹</span>
                             </button>
                             <h2>참여 중인 나의 DR</h2>
                             <div className="header-placeholder"></div>
                         </header>
 
-                        {/* Sub-tab menu switch */}
                         <div style={{ display: 'flex', padding: '12px 20px', gap: '10px', backgroundColor: '#FFFFFF' }}>
                             <button 
                                 onClick={() => setJoinSubTab('joined')}
@@ -532,12 +765,8 @@ const DrHistoryPage: React.FC = () => {
                         </div>
 
                         <main className="app-content dr-content" style={{ padding: '16px' }}>
-                            
                             {joinSubTab === 'joined' ? (
-                                /* 참여 중인 DR 리스트 (국민/경남 등 가입 완료된 카드만 노출) */
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    
-                                    {/* 국민 DR 카드 */}
                                     {drCards?.isHouseholdsKpxDr && (
                                         <div className="card dr-join-status-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -545,7 +774,6 @@ const DrHistoryPage: React.FC = () => {
                                                 <strong style={{ fontSize: '15px', fontWeight: 900, color: '#1E293B' }}>국민DR (쉼표)</strong>
                                             </div>
 
-                                            {/* Progress Process lines */}
                                             <div className="dr-progress-line-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '8px', borderLeft: '2px dashed #00A8FF', marginLeft: '12px' }}>
                                                 <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                                                     <span style={{ fontWeight: 800, color: '#00A8FF' }}>● STEP 1. 신청서 작성/제출</span>
@@ -570,7 +798,6 @@ const DrHistoryPage: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* 경남 DR 카드 */}
                                     {drCards?.isHouseholdsGyeongnamDr && (
                                         <div className="card dr-join-status-card" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -578,7 +805,6 @@ const DrHistoryPage: React.FC = () => {
                                                 <strong style={{ fontSize: '15px', fontWeight: 900, color: '#1E293B' }}>경남DR</strong>
                                             </div>
 
-                                            {/* Progress Process lines */}
                                             <div className="dr-progress-line-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '8px', borderLeft: '2px dashed #00A8FF', marginLeft: '12px' }}>
                                                 <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                                                     <span style={{ fontWeight: 800, color: '#00A8FF' }}>● STEP 1. 신청서 작성/제출</span>
@@ -610,10 +836,7 @@ const DrHistoryPage: React.FC = () => {
                                     )}
                                 </div>
                             ) : (
-                                /* 미신청 DR 리스트 */
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    
-                                    {/* 미신청 국민 DR 카드 */}
                                     {!drCards?.isHouseholdsKpxDr && (
                                         <div className="card dr-join-status-card unjoined" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -645,7 +868,6 @@ const DrHistoryPage: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* 미신청 경남 DR 카드 */}
                                     {!drCards?.isHouseholdsGyeongnamDr && (
                                         <div className="card dr-join-status-card unjoined" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -787,11 +1009,12 @@ const DrHistoryPage: React.FC = () => {
                 )
             )}
 
-            {/* 3. TAB: points (나의 DR 포인트 상세 페이지 - Page 8) */}
+            {/* ======================================================== */}
+            {/* 5. TAB: points (나의 DR 포인트 상세 페이지 - Page 8) */}
             {activeTab === 'points' && (
                 <>
                     <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
-                        <button className="back-btn" onClick={() => navigate(-1)}>
+                        <button className="back-btn" onClick={() => changeTab('index')}>
                             <span>‹</span>
                         </button>
                         <h2>나의 DR 포인트</h2>
@@ -799,7 +1022,6 @@ const DrHistoryPage: React.FC = () => {
                     </header>
 
                     <main className="app-content dr-content" style={{ padding: '20px' }}>
-                        {/* Core Point Blue Card */}
                         <div className="card dr-dashboard-card" style={{ background: 'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)', color: 'white', border: 'none', padding: '24px', borderRadius: '24px', boxShadow: '0 8px 24px rgba(0, 114, 255, 0.25)', marginBottom: '20px' }}>
                             <span style={{ fontSize: '12px', opacity: 0.9 }}>통합 보유 포인트</span>
                             <div style={{ display: 'flex', alignItems: 'baseline', marginTop: '6px' }}>
@@ -811,7 +1033,6 @@ const DrHistoryPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Filter chip switcher */}
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                             <button 
                                 onClick={() => setPointFilter('all')}
@@ -833,7 +1054,6 @@ const DrHistoryPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Transactions Timeline */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             {mockPointTransactions
                                 .filter(item => pointFilter === 'all' || item.type === pointFilter)
@@ -857,11 +1077,12 @@ const DrHistoryPage: React.FC = () => {
                 </>
             )}
 
-            {/* 4. TAB: shop (기프티콘 포인트 쇼핑 뷰 - Page 9) */}
+            {/* ======================================================== */}
+            {/* 6. TAB: shop (기프티콘 포인트 쇼핑 뷰 - Page 9) */}
             {activeTab === 'shop' && (
                 <>
                     <header className="app-header" style={{ borderBottom: 'none', backgroundColor: '#FFFFFF' }}>
-                        <button className="back-btn" onClick={() => navigate(-1)}>
+                        <button className="back-btn" onClick={() => changeTab('index')}>
                             <span>‹</span>
                         </button>
                         <h2>포인트 쇼핑</h2>
@@ -869,14 +1090,11 @@ const DrHistoryPage: React.FC = () => {
                     </header>
 
                     <main className="app-content dr-content" style={{ padding: '16px' }}>
-                        
-                        {/* Point Bal summary */}
                         <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>나의 보유 포인트</span>
                             <strong className="number-font" style={{ fontSize: '15px', color: '#0072FF' }}>{(drSummary?.totalPoints || 15600).toLocaleString()} P</strong>
                         </div>
 
-                        {/* Product Grid Catalog (Page 9) */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                             {mockProducts.map(product => (
                                 <div 
@@ -906,19 +1124,15 @@ const DrHistoryPage: React.FC = () => {
             {selectedProduct && (
                 <div className="modal-overlay animated-fade-in" onClick={() => setSelectedProduct(null)} style={{ zIndex: 11000 }}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{ padding: '24px', maxWidth: '320px', textAlign: 'center' }}>
-                        
                         <div style={{ width: '80px', height: '80px', margin: '0 auto 12px auto', backgroundColor: '#F8FAFC', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <img src={selectedProduct.image} alt={selectedProduct.name} style={{ width: '60%', height: 'auto', objectFit: 'contain' }} />
                         </div>
-
                         <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 700 }}>{selectedProduct.provider}</span>
                         <h4 style={{ margin: '4px 0 12px 0', fontSize: '14px', fontWeight: 900, color: '#1E293B' }}>{selectedProduct.name}</h4>
-                        
                         <div style={{ backgroundColor: '#F8FAFC', borderRadius: '12px', padding: '12px', fontSize: '12px', color: '#475569', marginBottom: '20px' }}>
                             <span>차감 포인트 : </span>
                             <strong className="number-font" style={{ color: '#EF4444', fontWeight: 800 }}>{selectedProduct.price.toLocaleString()} P</strong>
                         </div>
-
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <button 
                                 onClick={() => setSelectedProduct(null)}
@@ -966,7 +1180,7 @@ const DrHistoryPage: React.FC = () => {
                         </div>
                         <div style={{ fontSize: '11px', color: '#475569', lineHeight: 1.6, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <strong>[수요관리사업 참여를 위한 개인정보 제공 동의서]</strong>
-                            <p style={{ margin: 0 }}>본인은 전력거래소 및 지자체가 운영하는 전력절감 수요반응(DR) 서비스에 참여하기 위하여, 아래와 같이 개인정보(이름, 연락처, 원격 AMI 검침값 및 식별 hoSeq)의 수집 및 위탁 제공에 동의합니다.</p>
+                            <p style={{ margin: 0 }}>본인은 개인정보의 수집 및 위탁 제공에 동의합니다.</p>
                             <p style={{ margin: 0 }}>1. 정보 제공받는 자: 전력거래소, 해당 지자체, 운영사 (주)에너넷</p>
                             <p style={{ margin: 0 }}>2. 정보 이용 목적: 전력량 모니터링, 절전 실천 검증 및 성공 포인트 적립 정산</p>
                             <p style={{ margin: 0 }}>3. 정보 보유 및 이용 기간: 가입일로부터 3년 혹은 탈퇴 시 즉시 파기</p>

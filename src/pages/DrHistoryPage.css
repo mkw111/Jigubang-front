@@ -495,3 +495,75 @@
     background-color: #F8FAFC !important;
 }
 
+/* 8. DR Index Portal & Cards Screen Styling */
+.dr-welcome-card {
+    position: relative;
+    background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
+    border-radius: 24px;
+    padding: 20px;
+    color: #FFFFFF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 8px 24px rgba(0, 114, 255, 0.2);
+}
+
+.dr-welcome-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.live-pulse {
+    font-size: 9px;
+    font-weight: 900;
+    color: #FFFFFF;
+    background-color: #FF5252;
+    padding: 2px 6px;
+    border-radius: 6px;
+    animation: blinkPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes blinkPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.95); }
+}
+
+.dr-count-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.dr-welcome-main {
+    font-weight: 900;
+    line-height: 1.35;
+    letter-spacing: -0.3px;
+    margin-top: 6px;
+}
+
+.dr-index-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dr-index-card:active {
+    transform: scale(0.98);
+}
+
+.dr-guide-banner-btn {
+    background-color: #EFF6FF;
+    border: 1.2px solid #BFDBFE;
+    color: #1E40AF;
+    padding: 16px 20px;
+    border-radius: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dr-guide-banner-btn:active {
+    background-color: #DBEAFE;
+}
+
+
